@@ -6,7 +6,7 @@ class WalkerTest {
 
   @Test
   fun walk() {
-    WalkerBuilder().build()
+    val w = WalkerBuilder().seed("file://???").build()
   }
 
 }
