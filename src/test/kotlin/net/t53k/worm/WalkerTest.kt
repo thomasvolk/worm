@@ -6,6 +6,7 @@ class WalkerTest {
 
   @Test
   fun walk() {
+    WalkerBuilder().build()
   }
 
 }
