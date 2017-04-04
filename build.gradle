@@ -1,14 +1,11 @@
 
 buildscript {
-	ext {
-		kotlinVersion = '1.1.1'
-	}
+	ext.kotlin_version = '1.1.1'
 	repositories {
 		mavenCentral()
 	}
 	dependencies {
-		classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
-		classpath("org.jetbrains.kotlin:kotlin-allopen:${kotlinVersion}")
+		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
 	}
 }
 
@@ -20,4 +17,6 @@ repositories {
 
 dependencies {
 	testCompile('junit:junit:4.12')
+	compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
+	compile "org.jsoup:jsoup:1.8.1"
 }

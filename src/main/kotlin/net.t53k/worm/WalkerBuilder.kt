@@ -1,16 +1,16 @@
 package net.t53k.worm
 
-import net.t53k.worm.walker.UrlWalker
+import net.t53k.worm.walker.SimpleWalker
 
 class WalkerBuilder {
+    val seeds = mutableListOf<String>()
+
     fun seed(url: String): WalkerBuilder {
-        return this
-    }
-    fun onPage(predicate: (Page) -> Void): WalkerBuilder {
+        seeds.add(url)
         return this
     }
 
     fun build(): Walker {
-        return UrlWalker()
+        return SimpleWalker(seeds)
     }
 }

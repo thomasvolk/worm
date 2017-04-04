@@ -1,9 +1,12 @@
 package net.t53k.worm
 
-interface Page {
+import org.jsoup.Jsoup
 
-  fun url(): String
+data class Page(val url: String, val body: String, val links: Collection<String>) {
+  companion object {}
+}
 
-  fun subPages(): Collection<Page>
-
+fun Page.Companion.parse(url: String, body: String): Page {
+  val links = Jsoup.parse(body).select("a").map { it.attr("href") }
+  return Page(url, body, links)
 }
