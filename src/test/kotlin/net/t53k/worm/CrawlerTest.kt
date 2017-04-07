@@ -10,9 +10,13 @@ class TestResolver(val base: String) : UrlResolver {
 }
 
 class TestPageReceiver {
-  val pages = mutableListOf<Page>()
+  private val pages = mutableListOf<Page>()
   fun receive(page: Page): Unit {
     pages.add(page)
+  }
+
+  fun getPages(): List<Page> {
+    return pages.toList()
   }
 }
 
@@ -24,8 +28,8 @@ class CrawlerTest {
     val loader = TestResolver("pages/tree")
     val receiver = TestPageReceiver()
     w.run(loader, receiver::receive)
-    receiver.pages.sortBy { it.url }
-    assertEquals(receiver.pages.map { it.url }.toList(),
+    val result = receiver.getPages().sortedBy { it.url }
+    assertEquals(result.map { it.url }.toList(),
             listOf("index.html", "subpage.01.a.html", "subpage.01.b.html", "subpage.02.a.html", "subpage.02.a.html"))
   }
 }
