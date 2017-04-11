@@ -1,21 +1,21 @@
 package net.t53k.worm
 
 class CrawlerBuilder {
-    val seeds = mutableListOf<String>()
-    var workerCount = 1
+    val _seeds = mutableListOf<String>()
+    var _worker = 1
 
     fun seed(url: String): CrawlerBuilder {
-        seeds.add(url)
+        _seeds.add(url)
         return this
     }
 
-    fun threads(workerCount: Int): CrawlerBuilder {
+    fun worker(workerCount: Int): CrawlerBuilder {
         if(workerCount < 1) { throw IllegalArgumentException("threadCount must be >= 1") }
-        this.workerCount = workerCount
+        this._worker = workerCount
         return this
     }
 
     fun build(): Crawler {
-        return Crawler(seeds, workerCount)
+        return Crawler(_seeds, _worker)
     }
 }

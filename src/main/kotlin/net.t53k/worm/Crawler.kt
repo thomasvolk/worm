@@ -4,7 +4,7 @@ import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.concurrent.thread
 
-class Crawler(val seeds: Collection<String>, val workerCount: Int) {
+class Crawler(val seeds: Collection<String>, val worker: Int) {
 
     fun run(loader: UrlResolver, pageHandler: (Page) -> Unit) {
         seeds.forEach{ processPage(it, loader, pageHandler) }
