@@ -4,60 +4,64 @@ import java.util.concurrent.LinkedBlockingQueue
 import kotlin.concurrent.thread
 import kotlin.reflect.KClass
 
-/**
- * Created by thomas on 07.04.17.
- */
-
 object PoisonPill
 
 class ActorSystem {
-    private val actors = mutableMapOf<String, Actor>()
+    private val _actors = mutableMapOf<String, ActorReference>()
+    private val _currentActor = ThreadLocal<ActorReference>()
 
-    fun <T> newActor(name: String, actorClass: KClass<T>): ActorReference where T : Actor {
-        val actor = actorClass.java.newInstance()
-        if(actors.contains(name)) { throw IllegalArgumentException("actor $name already exists") }
-        actors.put(name, actor)
-        actor.init(this)
-        return actor.self()
+    fun <T> actor(name: String, actorClass: KClass<T>): ActorReference where T : Actor {
+        if(_actors.contains(name)) { throw IllegalArgumentException("actor $name already exists") }
+        val actorRef = actorClass.java.newInstance().start(this)
+        _actors.put(name, actorRef)
+        return actorRef
     }
 
-    fun actor(name: String): ActorReference { return actors.get(name)!!.self() }
+    fun get(name: String): ActorReference { return _actors.get(name)!! }
 
-    fun waitForAllActorsForShutdown() {
-        actors.forEach { (name, actor) -> actor.waitForShutdown() }
+    fun current(): ActorReference { return _currentActor.get() }
+
+    fun current(actor: ActorReference) {
+        _currentActor.set(actor)
+    }
+
+    fun waitForShutdown() {
+        _actors.forEach { (name, actor) -> actor.waitForShutdown() }
     }
 }
 
 data class ActorMessageWrapper(val message: Any, val sender: ActorReference)
 
 interface ActorReference {
-    fun send(message: Any, sender: ActorReference)
+    fun send(message: Any)
+
+    fun waitForShutdown()
 }
 
-object DummyActorReference: ActorReference {
-    override fun send(message: Any, sender: ActorReference) {}
-}
+class ThreadActorReference(val system: ActorSystem, val actor: Actor): ActorReference {
+    override fun send(message: Any) {
+        actor.send(message, system.current())
+    }
 
-class ThreadActorReference(val actor: Actor): ActorReference {
-    override fun send(message: Any, sender: ActorReference) {
-        actor.send(message, sender)
+    override fun waitForShutdown() {
+        actor.waitForShutdown()
     }
 }
 
 abstract class Actor {
-    private val inbox = LinkedBlockingQueue<ActorMessageWrapper>(1000)
-    private var running = true
-    private val _self = ThreadActorReference(this)
+    private val _inbox = LinkedBlockingQueue<ActorMessageWrapper>()
+    private var _running = true
+    private var _self: ThreadActorReference? = null
     private var _sender: ActorReference? = null
     private var _thread: Thread? = null
-    private var _system: ActorSystem? = null
 
-    fun init(system: ActorSystem) {
-        _system = system
+    fun start(system: ActorSystem): ActorReference {
         _sender = null
+        _self = ThreadActorReference(system, this)
         _thread = thread(start = true) {
-            while(running) {
-                val (message, sender) = inbox.take()
+            system().current(self())
+            while(_running) {
+                val (message, sender) = _inbox.take()
                 _sender = sender
                 when(message) {
                     PoisonPill -> stop()
@@ -65,24 +69,25 @@ abstract class Actor {
                 }
             }
         }
+        return self()
     }
 
     fun waitForShutdown() { _thread!!.join() }
 
     protected fun stop() {
-        running = false
+        _running = false
     }
 
     fun send(message: Any, sender: ActorReference) {
-        inbox.offer(ActorMessageWrapper(message, sender))
+        _inbox.offer(ActorMessageWrapper(message, sender))
     }
 
-    protected fun system(): ActorSystem { return _system!! }
+    protected fun system(): ActorSystem { return _self!!.system }
 
     protected fun sender(): ActorReference { return _sender!! }
 
-    fun self(): ActorReference {return _self }
+    protected fun self(): ActorReference {return _self!! }
 
-    abstract fun receive(message: Any)
+    protected abstract fun receive(message: Any)
 }
 

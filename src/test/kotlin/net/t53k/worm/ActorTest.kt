@@ -4,10 +4,6 @@ package net.t53k.worm
 import org.junit.Test
 import org.junit.Assert.*
 
-/**
- * Created by thomas on 10.04.17.
- */
-
 object Start
 object Stop
 object Ping
@@ -19,17 +15,17 @@ class PingActor: Actor() {
     override fun receive(message: Any) {
         when(message) {
             Start -> {
-                system().actor("pong").send(Ping, self())
+                system().get("pong").send(Ping)
                 starter = sender()
             }
             Stop -> {
-                sender().send(PoisonPill, self())
-                self().send(PoisonPill, self())
-                starter!!.send(lastPongId, self())
+                sender().send(PoisonPill)
+                self().send(PoisonPill)
+                starter!!.send(lastPongId)
             }
             is Pong -> {
                 lastPongId = message.id
-                sender().send(Ping, self())
+                sender().send(Ping)
             }
         }
     }
@@ -41,8 +37,8 @@ class PongActor: Actor() {
         when(message) {
             Ping -> {
                 count++
-                if(count < 100) sender().send(Pong(count), self())
-                else sender().send(Stop, self())
+                if(count < 100) sender().send(Pong(count))
+                else sender().send(Stop)
             }
         }
     }
@@ -53,16 +49,21 @@ class ActorTest {
     @Test
     fun pingPong() {
         val system = ActorSystem()
-        val ping = system.newActor("ping", PingActor::class)
-        system.newActor("pong", PongActor::class)
-        ping.send(Start, object: ActorReference {
-            override fun send(message: Any, sender: ActorReference) {
+        val ping = system.actor("ping", PingActor::class)
+        system.actor("pong", PongActor::class)
+        system.current(object: ActorReference {
+            override fun send(message: Any) {
                 when(message) {
                     is Int -> assertEquals(message, 99)
                     else -> fail("wrong message format: $message")
                 }
             }
+
+            override fun waitForShutdown() {
+
+            }
         })
-        system.waitForAllActorsForShutdown()
+        ping.send(Start)
+        system.waitForShutdown()
     }
 }
