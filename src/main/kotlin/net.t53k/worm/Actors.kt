@@ -7,19 +7,25 @@ import kotlin.reflect.KClass
 object PoisonPill
 
 class ActorSystem {
-    private val _actors = mutableMapOf<String, ActorReference>()
+    private val _actors = mutableMapOf<String, ThreadActorReference>()
     private val _currentActor = ThreadLocal<ActorReference>()
 
     fun <T> actor(name: String, actorClass: KClass<T>): ActorReference where T : Actor {
-        if(_actors.contains(name)) { throw IllegalArgumentException("actor $name already exists") }
-        val actorRef = actorClass.java.newInstance().start(this)
+        return actor<T>(name, actorClass.java.newInstance())
+    }
+
+    fun <T> actor(name: String, actor: T): ActorReference where T : Actor {
+        if (_actors.contains(name)) {
+            throw IllegalArgumentException("actor $name already exists")
+        }
+        val actorRef = actor.start(this)
         _actors.put(name, actorRef)
         return actorRef
     }
 
     fun get(name: String): ActorReference { return _actors.get(name)!! }
 
-    fun current(): ActorReference { return _currentActor.get() }
+    fun current(): ActorReference { return _currentActor.get() ?: DummyActorReference }
 
     fun current(actor: ActorReference) {
         _currentActor.set(actor)
@@ -34,8 +40,11 @@ data class ActorMessageWrapper(val message: Any, val sender: ActorReference)
 
 interface ActorReference {
     fun send(message: Any)
+}
 
-    fun waitForShutdown()
+object DummyActorReference: ActorReference {
+    override fun send(message: Any) {
+    }
 }
 
 class ThreadActorReference(val system: ActorSystem, val actor: Actor): ActorReference {
@@ -43,7 +52,7 @@ class ThreadActorReference(val system: ActorSystem, val actor: Actor): ActorRefe
         actor.send(message, system.current())
     }
 
-    override fun waitForShutdown() {
+    fun waitForShutdown() {
         actor.waitForShutdown()
     }
 }
@@ -55,7 +64,7 @@ abstract class Actor {
     private var _sender: ActorReference? = null
     private var _thread: Thread? = null
 
-    fun start(system: ActorSystem): ActorReference {
+    fun start(system: ActorSystem): ThreadActorReference {
         _sender = null
         _self = ThreadActorReference(system, this)
         _thread = thread(start = true) {
@@ -69,7 +78,7 @@ abstract class Actor {
                 }
             }
         }
-        return self()
+        return _self!!
     }
 
     fun waitForShutdown() { _thread!!.join() }
