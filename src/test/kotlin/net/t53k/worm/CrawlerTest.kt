@@ -24,7 +24,7 @@ class CrawlerTest {
         override fun receive(message: Any) {
             when (message) {
                 is Page -> pages += message
-                Stop -> testResultReceiver send pages.map { it.url }.toList()
+                Stop -> testResultReceiver send pages.map { it.url }.toList().sorted()
             }
         }
     }
@@ -40,7 +40,7 @@ class CrawlerTest {
                 dispatcher send LoadUrl("index.html")
                 onMessage {
                     assertEquals(
-                            listOf("index.html", "subpage.01.a.html", "subpage.01.b.html", "subpage.02.a.html"),
+                            listOf("index.html", "subpage.01.a.html", "subpage.01.b.html", "subpage.02.a.html").sorted(),
                             it)
                 }
             }))
