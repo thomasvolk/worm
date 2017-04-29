@@ -1,37 +1,49 @@
 package net.t53k.worm
 
-import net.t53k.worm.crawler.CrawlerBuilder
+import net.t53k.alkali.Actor
+import net.t53k.alkali.ActorReference
+import net.t53k.alkali.actors.Reaper
+import net.t53k.alkali.test.actorTest
+import org.junit.Assert.assertEquals
 import org.junit.Test
-import org.junit.Assert.*
 
-class TestResolver(val base: String) : Resolver {
-  override fun resolve(url: String): String {
-    return javaClass.getResourceAsStream("$base/$url").bufferedReader().use { it.readText() }
-  }
-}
 
-class TestPageReceiver {
-  private val pages = mutableListOf<Page>()
-  fun receive(page: Page): Unit {
-    pages.add(page)
-  }
 
-  fun getPages(): List<Page> {
-    return pages.toList()
-  }
-}
 
 class CrawlerTest {
 
-  @Test
-  fun treeWalk() {
-    val w = CrawlerBuilder().seed("index.html").build()
-    val loader = TestResolver("pages/tree")
-    val receiver = TestPageReceiver()
-    w.run(loader, receiver::receive)
-    val result = receiver.getPages().sortedBy { it.url }
-    assertEquals(
-            listOf("index.html", "subpage.01.a.html", "subpage.01.b.html", "subpage.02.a.html"),
-            result.map { it.url }.toList())
-  }
+    class TestPagerLoader(val base: String) : PagerLoader() {
+        override fun load(url: String): String {
+            return javaClass.getResourceAsStream("$base/$url").bufferedReader().use { it.readText() }
+        }
+    }
+
+    class PageHandler(val testResultReceiver: ActorReference) : Actor() {
+        private val pages = mutableListOf<Page>()
+
+        override fun receive(message: Any) {
+            when (message) {
+                is Page -> pages += message
+                Stop -> testResultReceiver send pages.map { it.url }.toList()
+            }
+        }
+    }
+
+    @Test
+    fun treeWalk() {
+        val worker = 4
+        actorTest { testActor ->
+            testSystem().actor("reaper", Reaper({
+                val pageHandler = actor("pageHandler", PageHandler(testActor))
+                val pageLoaderWorker = (1..worker).map { actor("worker$it", TestPagerLoader("pages/tree")) }
+                val dispatcher = actor("dispatcher", WorkDispatcher(pageHandler, pageLoaderWorker))
+                dispatcher send LoadUrl("index.html")
+                onMessage {
+                    assertEquals(
+                            listOf("index.html", "subpage.01.a.html", "subpage.01.b.html", "subpage.02.a.html"),
+                            it)
+                }
+            }))
+        }
+    }
 }
