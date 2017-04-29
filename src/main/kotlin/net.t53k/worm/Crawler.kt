@@ -7,9 +7,10 @@ import net.t53k.alkali.router.RoundRobinRouter
 import java.net.URL
 import java.nio.charset.Charset
 
-data class LoadUrl(var url: String)
+data class LoadPage(var url: String)
 data class ProcessPage(var page: Page)
-object Stop
+object Done
+data class Start(val url: String)
 
 class WorkDispatcher(val pageHandler: ActorReference, val pageLoaderWorker: List<ActorReference>): Actor() {
     private lateinit var router: ActorReference
@@ -21,9 +22,9 @@ class WorkDispatcher(val pageHandler: ActorReference, val pageLoaderWorker: List
 
     override fun receive(message: Any) {
         when(message) {
-            is LoadUrl -> {
+            is Start -> {
                 pagesPending += message.url
-                router send message
+                router send LoadPage(message.url)
             }
             is ProcessPage -> {
                 pagesPending -= message.page.url
@@ -32,13 +33,11 @@ class WorkDispatcher(val pageHandler: ActorReference, val pageLoaderWorker: List
                 page.links.forEach{
                     if(!pagesPending.contains(it)) {
                         pagesPending += it
-                        router send LoadUrl(it)
+                        router send LoadPage(it)
                     }
                 }
                 if(pagesPending.isEmpty()) {
-                    router send Broadcast(Stop)
-                    pageHandler send Stop
-                    stop()
+                    pageHandler send Done
                 }
             }
         }
@@ -48,12 +47,11 @@ class WorkDispatcher(val pageHandler: ActorReference, val pageLoaderWorker: List
 open class PagerLoader(val charset: Charset = Charsets.UTF_8): Actor() {
     override fun receive(message: Any) {
         when(message) {
-            is LoadUrl -> sender()!! send ProcessPage(createPage(message))
-            Stop -> stop()
+            is LoadPage -> sender()!! send ProcessPage(createPage(message))
         }
     }
 
-    open protected fun createPage(message: LoadUrl) = Page.parse(message.url, load(message.url))
+    open protected fun createPage(message: LoadPage) = Page.parse(message.url, load(message.url))
 
     open protected fun load(url: String) = URL(url).readText(charset)
 

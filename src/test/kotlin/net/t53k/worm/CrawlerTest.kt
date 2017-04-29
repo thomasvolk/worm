@@ -24,7 +24,7 @@ class CrawlerTest {
         override fun receive(message: Any) {
             when (message) {
                 is Page -> pages += message
-                Stop -> testResultReceiver send pages.map { it.url }.toList().sorted()
+                Done -> testResultReceiver send pages.map { it.url }.toList().sorted()
             }
         }
     }
@@ -33,17 +33,17 @@ class CrawlerTest {
     fun treeWalk() {
         val worker = 4
         actorTest { testActor ->
-            testSystem().actor("reaper", Reaper({
+
                 val pageHandler = actor("pageHandler", PageHandler(testActor))
                 val pageLoaderWorker = (1..worker).map { actor("worker$it", TestPagerLoader("pages/tree")) }
                 val dispatcher = actor("dispatcher", WorkDispatcher(pageHandler, pageLoaderWorker))
-                dispatcher send LoadUrl("index.html")
+                dispatcher send Start("index.html")
+
                 onMessage {
                     assertEquals(
                             listOf("index.html", "subpage.01.a.html", "subpage.01.b.html", "subpage.02.a.html").sorted(),
                             it)
                 }
-            }))
         }
     }
 }
