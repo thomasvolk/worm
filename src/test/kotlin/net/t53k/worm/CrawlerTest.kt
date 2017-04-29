@@ -1,5 +1,6 @@
 package net.t53k.worm
 
+import net.t53k.worm.crawler.CrawlerBuilder
 import org.junit.Test
 import org.junit.Assert.*
 
@@ -29,7 +30,8 @@ class CrawlerTest {
     val receiver = TestPageReceiver()
     w.run(loader, receiver::receive)
     val result = receiver.getPages().sortedBy { it.url }
-    assertEquals(result.map { it.url }.toList(),
-            listOf("index.html", "subpage.01.a.html", "subpage.01.b.html", "subpage.02.a.html", "subpage.02.a.html"))
+    assertEquals(
+            listOf("index.html", "subpage.01.a.html", "subpage.01.b.html", "subpage.02.a.html"),
+            result.map { it.url }.toList())
   }
 }
