@@ -4,7 +4,7 @@ import net.t53k.worm.crawler.CrawlerBuilder
 import org.junit.Test
 import org.junit.Assert.*
 
-class TestResolver(val base: String) : UrlResolver {
+class TestResolver(val base: String) : Resolver {
   override fun resolve(url: String): String {
     return javaClass.getResourceAsStream("$base/$url").bufferedReader().use { it.readText() }
   }

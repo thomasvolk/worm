@@ -3,12 +3,11 @@ package net.t53k.worm.crawler
 import net.t53k.alkali.Actor
 import net.t53k.alkali.ActorReference
 import net.t53k.alkali.ActorSystem
-import net.t53k.alkali.PoisonPill
 import net.t53k.alkali.actors.Reaper
 import net.t53k.alkali.router.Broadcast
 import net.t53k.alkali.router.RoundRobinRouter
 import net.t53k.worm.Page
-import net.t53k.worm.UrlResolver
+import net.t53k.worm.Resolver
 
 data class LoadUrl(var url: String)
 data class ProcessPage(var page: Page)
@@ -47,7 +46,7 @@ class WorkDispatcher(val pageHandler: (Page) -> Unit, val pageLoaderWorker: List
     }
 }
 
-class PagerLoaderWorker(val loader: UrlResolver): Actor() {
+class PagerLoaderWorker(val loader: Resolver): Actor() {
     override fun receive(message: Any) {
         when(message) {
             is LoadUrl -> sender()!! send ProcessPage(Page.parse(message.url, loader.resolve(message.url)))
@@ -59,7 +58,7 @@ class PagerLoaderWorker(val loader: UrlResolver): Actor() {
 
 class Crawler(val seeds: Collection<String>, val worker: Int) {
 
-    fun run(loader: UrlResolver, pageHandler: (Page) -> Unit) {
+    fun run(loader: Resolver, pageHandler: (Page) -> Unit) {
         val actorSystem = ActorSystem()
         actorSystem.actor("reaper", Reaper({
             val pageLoaderWorker = (1..worker).map { actor("worker$it", PagerLoaderWorker(loader)) }
