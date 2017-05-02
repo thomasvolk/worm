@@ -2,7 +2,6 @@ package net.t53k.worm
 
 import net.t53k.alkali.Actor
 import net.t53k.alkali.ActorReference
-import net.t53k.alkali.actors.Reaper
 import net.t53k.alkali.test.actorTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -33,7 +32,6 @@ class CrawlerTest {
     fun treeWalk() {
         val worker = 4
         actorTest { testActor ->
-
                 val pageHandler = actor("pageHandler", PageHandler(testActor))
                 val pageLoaderWorker = (1..worker).map { actor("worker$it", TestPagerLoader("pages/tree")) }
                 val dispatcher = actor("dispatcher", WorkDispatcher(pageHandler, pageLoaderWorker))
