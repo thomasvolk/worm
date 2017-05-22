@@ -12,17 +12,40 @@ data class ProcessPage(var page: Page)
 object Done
 data class Start(val url: String)
 
-class WorkDispatcher(val pageHandler: ActorReference, val pageLoaderWorker: List<ActorReference>): Actor() {
+class PageHandler(val onPage: (Page) -> Unit) : Actor() {
+    override fun receive(message: Any) {
+        when (message) {
+            is Page -> onPage(message)
+        }
+    }
+}
+
+class PagerLoader(val pageLoader: (String) -> String): Actor() {
+    override fun receive(message: Any) {
+        when(message) {
+            is LoadPage -> sender() send ProcessPage(Page.parse(message.url, pageLoader(message.url)))
+        }
+    }
+}
+
+class WorkDispatcher(val onPage: (Page) -> Unit, val worker: Int,
+                     val pageLoader: (String) -> String = { url -> URL(url).readText(Charsets.UTF_8) }): Actor() {
+    private lateinit var pageLoaderWorker: List<ActorReference>
+    private lateinit var pageHandler: ActorReference
     private lateinit var router: ActorReference
+    private lateinit var starter: ActorReference
     private val pagesPending = mutableSetOf<String>()
 
     override fun before() {
+        pageHandler = actor("pageHandler", PageHandler(onPage))
+        pageLoaderWorker = (1..worker).map { actor("worker$it", PagerLoader(pageLoader)) }
         router = actor("workerRouter", RoundRobinRouter(pageLoaderWorker))
     }
 
     override fun receive(message: Any) {
         when(message) {
             is Start -> {
+                starter = sender()
                 pagesPending += message.url
                 router send LoadPage(message.url)
             }
@@ -37,22 +60,9 @@ class WorkDispatcher(val pageHandler: ActorReference, val pageLoaderWorker: List
                     }
                 }
                 if(pagesPending.isEmpty()) {
-                    pageHandler send Done
+                    starter send Done
                 }
             }
         }
     }
-}
-
-open class PagerLoader(val charset: Charset = Charsets.UTF_8): Actor() {
-    override fun receive(message: Any) {
-        when(message) {
-            is LoadPage -> sender()!! send ProcessPage(createPage(message))
-        }
-    }
-
-    open protected fun createPage(message: LoadPage) = Page.parse(message.url, load(message.url))
-
-    open protected fun load(url: String) = URL(url).readText(charset)
-
 }
