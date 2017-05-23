@@ -13,7 +13,7 @@ class CrawlerTest {
     fun treeWalk() {
         val worker = 4
         val base = "pages/tree"
-        val pages = mutableListOf<Page>()
+        val pages = mutableSetOf<Page>()
         val testClass = javaClass
         actorTest { testActor ->
                 val dispatcher = actor("dispatcher", WorkDispatcher({ page -> pages += page }, worker,
