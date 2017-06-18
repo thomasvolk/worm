@@ -2,10 +2,8 @@ package net.t53k.worm
 
 import net.t53k.alkali.Actor
 import net.t53k.alkali.ActorReference
-import net.t53k.alkali.router.Broadcast
 import net.t53k.alkali.router.RoundRobinRouter
 import java.net.URL
-import java.nio.charset.Charset
 
 data class LoadPage(var url: String)
 data class ProcessPage(var page: Page)
