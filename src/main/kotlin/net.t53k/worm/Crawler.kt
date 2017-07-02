@@ -3,12 +3,15 @@ package net.t53k.worm
 import net.t53k.alkali.Actor
 import net.t53k.alkali.ActorReference
 import net.t53k.alkali.router.RoundRobinRouter
+import org.slf4j.LoggerFactory
 import java.net.URL
+import kotlin.reflect.KClass
 
 data class LoadPage(var url: String)
 data class ProcessPage(var page: Page)
 object Done
 data class Start(val url: String)
+data class LoadPageError(val url: String, val type: Class<out Exception>)
 
 class PageHandler(val onPage: (Page) -> Unit) : Actor() {
     override fun receive(message: Any) {
@@ -21,18 +24,27 @@ class PageHandler(val onPage: (Page) -> Unit) : Actor() {
 class PagerLoader(val pageLoader: (String) -> String): Actor() {
     override fun receive(message: Any) {
         when(message) {
-            is LoadPage -> sender() send ProcessPage(Page.parse(message.url, pageLoader(message.url)))
+            is LoadPage -> {
+                try {
+                    val cnt = pageLoader(message.url)
+                    sender() send ProcessPage(Page.parse(message.url, cnt))
+                } catch (e: Exception) {
+                    sender() send LoadPageError(message.url, e.javaClass)
+                }
+            }
         }
     }
 }
 
 class WorkDispatcher(val onPage: (Page) -> Unit, val worker: Int,
-                     val pageLoader: (String) -> String = { url -> URL(url).readText(Charsets.UTF_8) }): Actor() {
+                     val pageLoader: (String) -> String = { url -> URL(url).readText(Charsets.UTF_8) },
+                     val linkFilter: (String) -> Boolean = { link -> true } ): Actor() {
     private lateinit var pageLoaderWorker: List<ActorReference>
     private lateinit var pageHandler: ActorReference
     private lateinit var router: ActorReference
     private lateinit var starter: ActorReference
     private val pagesPending = mutableSetOf<String>()
+    private val log = LoggerFactory.getLogger(javaClass)
 
     override fun before() {
         pageHandler = actor("pageHandler", PageHandler(onPage))
@@ -51,16 +63,18 @@ class WorkDispatcher(val onPage: (Page) -> Unit, val worker: Int,
                 pagesPending -= message.page.url
                 val page = message.page
                 pageHandler send page
-                page.links.forEach{
-                    if(!pagesPending.contains(it)) {
-                        pagesPending += it
-                        router send LoadPage(it)
-                    }
-                }
-                if(pagesPending.isEmpty()) {
-                    starter send Done
+                page.links.filter(linkFilter).filter { !pagesPending.contains(it) }.forEach{
+                    pagesPending += it
+                    router send LoadPage(it)
                 }
             }
+            is LoadPageError -> {
+                log.error("$message")
+                pagesPending -= message.url
+            }
+        }
+        if(pagesPending.isEmpty()) {
+            starter send Done
         }
     }
 }

@@ -1,6 +1,7 @@
 package net.t53k.worm
 
 import org.jsoup.Jsoup
+import java.net.URL
 
 data class Page(val url: String, val body: String, val links: Collection<String>) {
   companion object Parser {

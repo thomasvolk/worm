@@ -17,7 +17,8 @@ class CrawlerTest {
         val testClass = javaClass
         actorTest { _ ->
                 val dispatcher = actor("dispatcher", WorkDispatcher({ page -> pages += page }, worker,
-                        {url -> testClass.getResourceAsStream("$base/$url").bufferedReader().use { it.readText() }}))
+                        {url -> testClass.getResourceAsStream("$base/$url").bufferedReader().use { it.readText() }},
+                        linkFilter = { l -> !l.contains("filterthis")}))
                 dispatcher send Start("index.html")
 
                 onMessage {
