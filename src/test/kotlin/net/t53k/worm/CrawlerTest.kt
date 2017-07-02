@@ -28,7 +28,7 @@ class CrawlerTest {
                     assertEquals(
                             listOf("index.html", "subpage.01.a.html", "subpage.01.b.html", "subpage.02.a.html").sorted(),
                             pages.map { it.url }.sorted())
-                    assertEquals(listOf("notfound.html"), errorUrls)
+                    assertEquals(listOf("notfound.html"), errorUrls.sorted())
                 }
         }
     }
