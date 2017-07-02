@@ -3,9 +3,7 @@ package net.t53k.worm
 import net.t53k.alkali.Actor
 import net.t53k.alkali.ActorReference
 import net.t53k.alkali.router.RoundRobinRouter
-import org.slf4j.LoggerFactory
 import java.net.URL
-import kotlin.reflect.KClass
 
 data class LoadPage(var url: String)
 data class ProcessPage(var page: Page)
@@ -38,13 +36,13 @@ class PagerLoader(val pageLoader: (String) -> String): Actor() {
 
 class WorkDispatcher(val onPage: (Page) -> Unit, val worker: Int,
                      val pageLoader: (String) -> String = { url -> URL(url).readText(Charsets.UTF_8) },
-                     val linkFilter: (String) -> Boolean = { link -> true } ): Actor() {
+                     val linkFilter: (String) -> Boolean = { link -> true },
+                     val errorHandler: (LoadPageError) -> Unit = { err -> }): Actor() {
     private lateinit var pageLoaderWorker: List<ActorReference>
     private lateinit var pageHandler: ActorReference
     private lateinit var router: ActorReference
     private lateinit var starter: ActorReference
     private val pagesPending = mutableSetOf<String>()
-    private val log = LoggerFactory.getLogger(javaClass)
 
     override fun before() {
         pageHandler = actor("pageHandler", PageHandler(onPage))
@@ -69,8 +67,8 @@ class WorkDispatcher(val onPage: (Page) -> Unit, val worker: Int,
                 }
             }
             is LoadPageError -> {
-                log.error("$message")
                 pagesPending -= message.url
+                errorHandler(message)
             }
         }
         if(pagesPending.isEmpty()) {
