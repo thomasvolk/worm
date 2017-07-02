@@ -15,7 +15,7 @@ class CrawlerTest {
         val base = "pages/tree"
         val pages = mutableSetOf<Page>()
         val testClass = javaClass
-        actorTest { testActor ->
+        actorTest { _ ->
                 val dispatcher = actor("dispatcher", WorkDispatcher({ page -> pages += page }, worker,
                         {url -> testClass.getResourceAsStream("$base/$url").bufferedReader().use { it.readText() }}))
                 dispatcher send Start("index.html")
