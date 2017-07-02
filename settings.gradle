@@ -1,2 +1,0 @@
-include ':alkali'
-project(':alkali').projectDir = new File(settingsDir, '../alkali')
