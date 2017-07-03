@@ -8,7 +8,7 @@ class Crawler(val onPage: (Page) -> Unit,
               val worker: Int,
               val pageLoader: (String) -> String,
               val linkFilter: (String) -> Boolean,
-              val errorHandler: (LoadPageError) -> Unit) {
+              val errorHandler: (String) -> Unit) {
 
     fun start(url: String) {
         val system = ActorSystemBuilder().onDefaultActorMessage { message ->
@@ -28,7 +28,7 @@ class CrawlerBuilder {
     private var worker: Int = 4
     private var pageLoader: (String) -> String = { url -> URL(url).readText(Charsets.UTF_8) }
     private var linkFilter: (String) -> Boolean = { link -> true }
-    private var errorHandler: (LoadPageError) -> Unit = { err -> }
+    private var errorHandler: (String) -> Unit = { err -> }
 
     fun onPage(handler: (Page) -> Unit): CrawlerBuilder {
         onPage = handler
@@ -50,7 +50,7 @@ class CrawlerBuilder {
         return this
     }
 
-    fun onLoadPageError(handler: (LoadPageError) -> Unit): CrawlerBuilder {
+    fun onError(handler: (String) -> Unit): CrawlerBuilder {
         errorHandler = handler
         return this
     }

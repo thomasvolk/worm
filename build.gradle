@@ -21,4 +21,5 @@ dependencies {
 	compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
 	compile "org.jsoup:jsoup:1.8.1"
 	compile 'com.github.thomasvolk:alkali:RELEASE_1_0_1-SNAPSHOT'
+	compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.25'
 }

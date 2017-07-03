@@ -4,13 +4,13 @@ import net.t53k.alkali.Actor
 import net.t53k.alkali.ActorReference
 import net.t53k.alkali.router.RoundRobinRouter
 import net.t53k.worm.Page
-import java.net.URL
+import org.slf4j.LoggerFactory
 
+object Done
 data class LoadPage(var url: String)
 data class ProcessPage(var page: Page)
-object Done
 data class Start(val url: String)
-data class LoadPageError(val url: String, val type: Class<out Exception>)
+data class LoadPageError(val url: String)
 
 class PageHandler(val onPage: (Page) -> Unit) : Actor() {
     override fun receive(message: Any) {
@@ -21,6 +21,7 @@ class PageHandler(val onPage: (Page) -> Unit) : Actor() {
 }
 
 class PagerLoader(val pageLoader: (String) -> String): Actor() {
+    private val log = LoggerFactory.getLogger(javaClass)
     override fun receive(message: Any) {
         when(message) {
             is LoadPage -> {
@@ -28,7 +29,8 @@ class PagerLoader(val pageLoader: (String) -> String): Actor() {
                     val cnt = pageLoader(message.url)
                     sender() send ProcessPage(Page.parse(message.url, cnt))
                 } catch (e: Exception) {
-                    sender() send LoadPageError(message.url, e.javaClass)
+                    log.error("loading page '${message.url}': $e")
+                    sender() send LoadPageError(message.url)
                 }
             }
         }
@@ -39,7 +41,7 @@ class WorkDispatcher(val onPage: (Page) -> Unit,
                      val worker: Int,
                      val pageLoader: (String) -> String,
                      val linkFilter: (String) -> Boolean,
-                     val errorHandler: (LoadPageError) -> Unit): Actor() {
+                     val errorHandler: (String) -> Unit): Actor() {
     private lateinit var pageLoaderWorker: List<ActorReference>
     private lateinit var pageHandler: ActorReference
     private lateinit var router: ActorReference
@@ -70,7 +72,7 @@ class WorkDispatcher(val onPage: (Page) -> Unit,
             }
             is LoadPageError -> {
                 pagesPending -= message.url
-                errorHandler(message)
+                errorHandler(message.url)
             }
         }
         if(pagesPending.isEmpty()) {

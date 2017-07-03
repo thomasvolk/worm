@@ -17,7 +17,7 @@ class CrawlerTest {
 
         val crawler = CrawlerBuilder().worker(worker)
                 .onPage { page -> pages += page }
-                .onLoadPageError { e -> errorUrls += e.url  }
+                .onError { url -> errorUrls += url  }
                 .pageLoader(pageLoader)
                 .linkFilter(linkFilter)
                 .build()
