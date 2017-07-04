@@ -2,15 +2,16 @@ package net.t53k.worm.actors
 
 import net.t53k.alkali.Actor
 import net.t53k.alkali.ActorReference
+import net.t53k.alkali.PoisonPill
 import net.t53k.alkali.router.RoundRobinRouter
 import net.t53k.worm.Page
 import org.slf4j.LoggerFactory
 
-object Done
 data class LoadPage(var url: String)
 data class ProcessPage(var page: Page)
 data class Start(val url: String)
 data class LoadPageError(val url: String)
+data class Done(val pagesPending: List<String> = listOf())
 
 class PageHandler(val onPage: (Page) -> Unit) : Actor() {
     override fun receive(message: Any) {
@@ -76,7 +77,12 @@ class WorkDispatcher(val onPage: (Page) -> Unit,
             }
         }
         if(pagesPending.isEmpty()) {
-            starter send Done
+            self() send PoisonPill
         }
+    }
+
+    override fun after() {
+        starter send Done(pagesPending.toList())
+
     }
 }

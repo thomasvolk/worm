@@ -19,7 +19,7 @@ class CrawlerTest {
                 .onPage { page -> pages += page }
                 .onError { url -> errorUrls += url  }
                 .pageLoader(pageLoader)
-                .linkFilter(linkFilter)
+                .withLinkFilter(linkFilter)
                 .build()
         crawler.start("index.html")
 
