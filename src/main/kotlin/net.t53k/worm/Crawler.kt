@@ -41,11 +41,11 @@ class MilliSecondsTimeout(val durationMs: Long) : Timeout {
 }
 
 class CrawlerBuilder {
-    private var onPage: (Page) -> Unit = { page -> }
+    private var onPage: (Page) -> Unit = { _ -> }
     private var worker: Int = 4
     private var pageLoader: (String) -> String = { url -> URL(url).readText(Charsets.UTF_8) }
-    private var linkFilter: (String) -> Boolean = { link -> true }
-    private var errorHandler: (String) -> Unit = { err -> }
+    private var linkFilter: (String) -> Boolean = { _ -> true }
+    private var errorHandler: (String) -> Unit = { _ -> }
 
     fun onPage(handler: (Page) -> Unit): CrawlerBuilder {
         onPage = handler
