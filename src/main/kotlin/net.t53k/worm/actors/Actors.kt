@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory
 
 data class LoadPage(var url: String)
 data class ProcessPage(var page: Page)
-data class Start(val url: String)
+data class Start(val urls: List<String>)
 data class LoadPageError(val url: String)
 data class Done(val pagesPending: List<String> = listOf())
 
@@ -59,8 +59,8 @@ class WorkDispatcher(val onPage: (Page) -> Unit,
         when(message) {
             is Start -> {
                 starter = sender()
-                pagesPending += message.url
-                router send LoadPage(message.url)
+                pagesPending += message.urls
+                message.urls.forEach { router send LoadPage(it) }
             }
             is ProcessPage -> {
                 pagesPending -= message.page.url

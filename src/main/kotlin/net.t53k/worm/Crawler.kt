@@ -11,17 +11,22 @@ class Crawler(val onPage: (Page) -> Unit,
               val linkFilter: (String) -> Boolean,
               val errorHandler: (String) -> Unit) {
 
-    fun start(url: String, timeout: Timeout = InfinityTimeout) {
+    fun start(urls: List<String>, timeout: Timeout = InfinityTimeout): List<String> {
+        val pendingPages = mutableListOf<String>()
         val system = ActorSystemBuilder().onDefaultActorMessage { message ->
             when(message) {
-                is Done -> shutdown()
+                is Done -> {
+                    pendingPages += message.pagesPending
+                    shutdown()
+                }
             }
         }.build()
         val dispatcher = system.actor("worm/dispatcher", WorkDispatcher(onPage = onPage, worker = worker, pageLoader = pageLoader,
                 linkFilter = linkFilter, errorHandler = errorHandler))
-        dispatcher send Start(url)
+        dispatcher send Start(urls)
         timeout.start { dispatcher send PoisonPill }
         system.waitForShutdown()
+        return pendingPages.toList()
     }
 }
 

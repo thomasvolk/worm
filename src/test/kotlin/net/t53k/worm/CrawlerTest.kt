@@ -21,8 +21,9 @@ class CrawlerTest {
                 .pageLoader(pageLoader)
                 .withLinkFilter(linkFilter)
                 .build()
-        crawler.start("index.html")
+        val pendigPages = crawler.start(listOf("index.html"))
 
+        assertEquals(listOf<String>(), pendigPages)
         assertEquals(
                 listOf("index.html", "subpage.01.a.html", "subpage.01.b.html", "subpage.02.a.html").sorted(),
                 pages.map { it.url }.sorted())
