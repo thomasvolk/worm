@@ -65,11 +65,11 @@ class WorkDispatcher(val onPage: (Page) -> Unit,
             is ProcessPage -> {
                 pagesPending -= message.page.url
                 val page = message.page
-                pageHandler send page
                 page.links.filter(linkFilter).filter { !pagesPending.contains(it) }.forEach{
                     pagesPending += it
                     router send LoadPage(it)
                 }
+                pageHandler send page
             }
             is LoadPageError -> {
                 pagesPending -= message.url
