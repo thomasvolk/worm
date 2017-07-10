@@ -18,6 +18,7 @@ task pageTest(type:JavaExec) {
 	}
 	main = 'PageTestAppKt'
 	classpath = sourceSets.test.runtimeClasspath
+	jvmArgs = ['-Dorg.slf4j.simpleLogger.defaultLogLevel=debug']
 }
 
 repositories {

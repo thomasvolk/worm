@@ -27,6 +27,7 @@ import net.t53k.worm.Page
 fun main(args: Array<String>) {
     println("=== PageTestApp::start ===")
     val seed = args.getOrElse(0) { "http://example.com" }
+    val timeout = 10000L
     println("seed: $seed")
     val pages = mutableSetOf<Page>()
     val crawler = CrawlerBuilder()
@@ -34,7 +35,7 @@ fun main(args: Array<String>) {
             .onPage { page -> pages += page }
             .withLinkFilter { it.startsWith(seed) }
             .build()
-    val pendigPages = crawler.start(listOf(seed), MilliSecondsTimeout(5000))
+    val pendigPages = crawler.start(listOf(seed), MilliSecondsTimeout(timeout))
     println(pages)
     println("=== PageTestApp::done ===")
 
