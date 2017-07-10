@@ -27,7 +27,7 @@ import net.t53k.worm.Page
 fun main(args: Array<String>) {
     println("=== PageTestApp::start ===")
     val seed = args.getOrElse(0) { "http://example.com" }
-    val timeout = 10000L
+    val timeout = 1000L
     println("seed: $seed")
     val pages = mutableSetOf<Page>()
     val crawler = CrawlerBuilder()

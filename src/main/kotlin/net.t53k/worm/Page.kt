@@ -33,6 +33,7 @@ data class Page(val url: String, val body: String, val links: Collection<String>
         else -> baseUrl
       }
       val links = Jsoup.parse(body).select("a").map { it.attr("href") }
+              .map { it.substringBeforeLast("#") }.toSet()
               .map { baseUrl.resolve(URI.create(it.replace(" ", "%20"))).toString() }
       return Page(url, body, links)
     }
