@@ -1,3 +1,7 @@
+import net.t53k.worm.CrawlerBuilder
+import net.t53k.worm.MilliSecondsTimeout
+import net.t53k.worm.Page
+
 /*
  * Copyright 2017 Thomas Volk
  *
@@ -19,29 +23,19 @@
  * under the License.
  *
  */
-package net.t53k.worm
 
-import org.jsoup.Jsoup
-import java.net.URI
-
-data class Page(val url: String, val body: String, val links: Collection<String>) {
-  companion object Parser {
-    fun parse(url: String, body: String): Page {
-      var baseUrl = URI.create(url)
-      baseUrl = when {
-        baseUrl.path == "" -> URI.create(baseUrl.toString() + "/")
-        else -> baseUrl
-      }
-      val links = Jsoup.parse(body).select("a").map { it.attr("href") }
-              .map { baseUrl.resolve(URI.create(it.replace(" ", "%20"))).toString() }
-      return Page(url, body, links)
-    }
-  }
-
-  override fun toString(): String {
-    return "Page(url='$url', links=$links, bodySize=${body.length})"
-  }
-
+fun main(args: Array<String>) {
+    println("=== PageTestApp::start ===")
+    val seed = args.getOrElse(0) { "http://example.com" }
+    println("seed: $seed")
+    val pages = mutableSetOf<Page>()
+    val crawler = CrawlerBuilder()
+            .worker(4)
+            .onPage { page -> pages += page }
+            .withLinkFilter { it.startsWith(seed) }
+            .build()
+    val pendigPages = crawler.start(listOf(seed), MilliSecondsTimeout(5000))
+    println(pages)
+    println("=== PageTestApp::done ===")
 
 }
-

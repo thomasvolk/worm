@@ -48,10 +48,12 @@ class PagerLoader(val pageLoader: (String) -> String): Actor() {
         when(message) {
             is LoadPage -> {
                 try {
+                    log.debug("load page: ${message.url}")
                     val cnt = pageLoader(message.url)
                     sender() send ProcessPage(Page.parse(message.url, cnt))
                 } catch (e: Exception) {
-                    log.error("loading page '${message.url}': $e")
+                    if(log.isDebugEnabled) log.error("loading page '${message.url}': $e", e)
+                    else log.error("loading page '${message.url}': $e")
                     sender() send LoadPageError(message.url)
                 }
             }
