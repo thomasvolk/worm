@@ -42,7 +42,7 @@ class PageHandler(val onPage: (Page) -> Unit) : Actor() {
     }
 }
 
-class PagerLoader(val pageLoader: (String) -> String): Actor() {
+class PagerLoader(val pageLoader: (String) -> String, val linkParser: (String, String) -> List<String>): Actor() {
     private val log = LoggerFactory.getLogger(javaClass)
     override fun receive(message: Any) {
         when(message) {
@@ -50,7 +50,7 @@ class PagerLoader(val pageLoader: (String) -> String): Actor() {
                 try {
                     log.debug("load page: ${message.url}")
                     val cnt = pageLoader(message.url)
-                    sender() send ProcessPage(Page.parse(message.url, cnt))
+                    sender() send ProcessPage(Page(message.url, cnt, linkParser(message.url, cnt)))
                 } catch (e: Exception) {
                     if(log.isDebugEnabled) log.error("loading page '${message.url}': $e", e)
                     else log.error("loading page '${message.url}': $e")
@@ -65,7 +65,8 @@ class WorkDispatcher(val onPage: (Page) -> Unit,
                      val worker: Int,
                      val pageLoader: (String) -> String,
                      val linkFilter: (String) -> Boolean,
-                     val errorHandler: (String) -> Unit): Actor() {
+                     val errorHandler: (String) -> Unit,
+                     val linkParser: (String, String) -> List<String>): Actor() {
     private lateinit var pageLoaderWorker: List<ActorReference>
     private lateinit var pageHandler: ActorReference
     private lateinit var router: ActorReference
@@ -74,7 +75,7 @@ class WorkDispatcher(val onPage: (Page) -> Unit,
 
     override fun before() {
         pageHandler = actor("worm/pageHandler", PageHandler(onPage))
-        pageLoaderWorker = (1..worker).map { actor("worm/worker$it", PagerLoader(pageLoader)) }
+        pageLoaderWorker = (1..worker).map { actor("worm/worker$it", PagerLoader(pageLoader, linkParser)) }
         router = actor("worm/workerRouter", RoundRobinRouter(pageLoaderWorker))
     }
 

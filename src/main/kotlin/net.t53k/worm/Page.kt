@@ -25,24 +25,8 @@ import org.jsoup.Jsoup
 import java.net.URI
 
 data class Page(val url: String, val body: String, val links: Collection<String>) {
-  companion object Parser {
-    fun parse(url: String, body: String): Page {
-      var baseUrl = URI.create(url)
-      baseUrl = when {
-        baseUrl.path == "" -> URI.create(baseUrl.toString() + "/")
-        else -> baseUrl
-      }
-      val links = Jsoup.parse(body).select("a").map { it.attr("href") }
-              .map { it.substringBeforeLast("#") }.toSet()
-              .map { baseUrl.resolve(URI.create(it.replace(" ", "%20"))).toString() }
-      return Page(url, body, links)
-    }
-  }
-
   override fun toString(): String {
     return "Page(url='$url', linkCount=${links.size}, bodySize=${body.length})"
   }
-
-
 }
 

@@ -24,13 +24,16 @@ package net.t53k.worm
 import net.t53k.alkali.ActorSystemBuilder
 import net.t53k.alkali.PoisonPill
 import net.t53k.worm.actors.*
+import org.jsoup.Jsoup
+import java.net.URI
 import java.net.URL
 
 class Crawler(val onPage: (Page) -> Unit,
               val worker: Int,
               val pageLoader: (String) -> String,
               val linkFilter: (String) -> Boolean,
-              val errorHandler: (String) -> Unit) {
+              val errorHandler: (String) -> Unit,
+              val linkParser: (String, String) -> List<String>) {
 
     fun start(urls: List<String>, timeout: Timeout = InfinityTimeout): List<String> {
         val pendingPages = mutableListOf<String>()
@@ -43,7 +46,7 @@ class Crawler(val onPage: (Page) -> Unit,
             }
         }.build()
         val dispatcher = system.actor("worm/dispatcher", WorkDispatcher(onPage = onPage, worker = worker, pageLoader = pageLoader,
-                linkFilter = linkFilter, errorHandler = errorHandler))
+                linkFilter = linkFilter, errorHandler = errorHandler, linkParser = linkParser))
         dispatcher send Start(urls)
         timeout.start { dispatcher send PoisonPill }
         system.waitForShutdown()
@@ -69,12 +72,23 @@ class MilliSecondsTimeout(val durationMs: Long) : Timeout {
 class CrawlerBuilder {
     companion object {
         val DEFAULT_PAGELOADER: (String) -> String = { url -> URL(url).readText(Charsets.UTF_8) }
+        val DEFAULT_LINK_PARSER: (String, String) -> List<String> = { url, body ->
+                var baseUrl = URI.create(url)
+                baseUrl = when {
+                    baseUrl.path == "" -> URI.create(baseUrl.toString() + "/")
+                    else -> baseUrl
+                }
+                Jsoup.parse(body).select("a").map { it.attr("href") }
+                        .map { it.substringBeforeLast("#") }.toSet()
+                        .map { baseUrl.resolve(URI.create(it.replace(" ", "%20"))).toString() }
+        }
     }
     private var onPage: (Page) -> Unit = { _ -> }
     private var worker: Int = 4
     private var pageLoader: (String) -> String = DEFAULT_PAGELOADER
     private var linkFilter: (String) -> Boolean = { _ -> true }
     private var errorHandler: (String) -> Unit = { _ -> }
+    private var linkParser: (String, String) -> List<String> = DEFAULT_LINK_PARSER
 
     fun onPage(handler: (Page) -> Unit): CrawlerBuilder {
         onPage = handler
@@ -101,6 +115,11 @@ class CrawlerBuilder {
         return this
     }
 
+    fun linkParser(handler: (String, String) -> List<String>): CrawlerBuilder {
+        linkParser = handler
+        return this
+    }
+
     fun build() = Crawler(onPage = onPage, worker = worker, pageLoader = pageLoader,
-            linkFilter = linkFilter, errorHandler = errorHandler)
+            linkFilter = linkFilter, errorHandler = errorHandler, linkParser = linkParser)
 }
