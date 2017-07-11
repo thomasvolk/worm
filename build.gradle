@@ -14,7 +14,7 @@ buildscript {
 
 task pageTest(type:JavaExec) {
 	if(project.hasProperty('seed')){
-		args(seed)
+		args(seed, 2000)
 	}
 	main = 'PageTestAppKt'
 	classpath = sourceSets.test.runtimeClasspath

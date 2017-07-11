@@ -40,7 +40,7 @@ data class Page(val url: String, val body: String, val links: Collection<String>
   }
 
   override fun toString(): String {
-    return "Page(url='$url', links=$links, bodySize=${body.length})"
+    return "Page(url='$url', linkCount=${links.size}, bodySize=${body.length})"
   }
 
 
