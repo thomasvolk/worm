@@ -28,8 +28,8 @@ import net.t53k.alkali.router.RoundRobinRouter
 import net.t53k.worm.Page
 import org.slf4j.LoggerFactory
 
-data class LoadPage(var url: String)
-data class ProcessPage(var page: Page)
+data class LoadPage(val url: String)
+data class ProcessPage(val page: Page, val links: List<String>)
 data class Start(val urls: List<String>)
 data class LoadPageError(val url: String)
 data class Done(val pagesPending: List<String> = listOf())
@@ -42,15 +42,15 @@ class PageHandler(val onPage: (Page) -> Unit) : Actor() {
     }
 }
 
-class PagerLoader(val pageLoader: (String) -> String, val linkParser: (String, String) -> List<String>): Actor() {
+class PagerLoader(val pageLoader: (String) -> String, val linkParser: (Page) -> List<String>): Actor() {
     private val log = LoggerFactory.getLogger(javaClass)
     override fun receive(message: Any) {
         when(message) {
             is LoadPage -> {
                 try {
                     log.debug("load page: ${message.url}")
-                    val cnt = pageLoader(message.url)
-                    sender() send ProcessPage(Page(message.url, cnt, linkParser(message.url, cnt)))
+                    val page = Page(message.url, pageLoader(message.url))
+                    sender() send ProcessPage(page, linkParser(page))
                 } catch (e: Exception) {
                     if(log.isDebugEnabled) log.error("loading page '${message.url}': $e", e)
                     else log.error("loading page '${message.url}': $e")
@@ -66,7 +66,7 @@ class WorkDispatcher(val onPage: (Page) -> Unit,
                      val pageLoader: (String) -> String,
                      val linkFilter: (String) -> Boolean,
                      val errorHandler: (String) -> Unit,
-                     val linkParser: (String, String) -> List<String>): Actor() {
+                     val linkParser: (Page) -> List<String>): Actor() {
     private lateinit var pageLoaderWorker: List<ActorReference>
     private lateinit var pageHandler: ActorReference
     private lateinit var router: ActorReference
@@ -89,7 +89,7 @@ class WorkDispatcher(val onPage: (Page) -> Unit,
             is ProcessPage -> {
                 pagesPending -= message.page.url
                 val page = message.page
-                page.links.filter(linkFilter).filter { !pagesPending.contains(it) }.forEach{
+                message.links.filter(linkFilter).filter { !pagesPending.contains(it) }.forEach{
                     pagesPending += it
                     router send LoadPage(it)
                 }

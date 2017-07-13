@@ -33,7 +33,7 @@ class Crawler(val onPage: (Page) -> Unit,
               val pageLoader: (String) -> String,
               val linkFilter: (String) -> Boolean,
               val errorHandler: (String) -> Unit,
-              val linkParser: (String, String) -> List<String>) {
+              val linkParser: (Page) -> List<String>) {
 
     fun start(urls: List<String>, timeout: Timeout = InfinityTimeout): List<String> {
         val pendingPages = mutableListOf<String>()
@@ -72,13 +72,13 @@ class MilliSecondsTimeout(val durationMs: Long) : Timeout {
 class CrawlerBuilder {
     companion object {
         val DEFAULT_PAGELOADER: (String) -> String = { url -> URL(url).readText(Charsets.UTF_8) }
-        val DEFAULT_LINK_PARSER: (String, String) -> List<String> = { url, body ->
-                var baseUrl = URI.create(url)
+        val DEFAULT_LINK_PARSER: (Page) -> List<String> = { page ->
+                var baseUrl = URI.create(page.url)
                 baseUrl = when {
                     baseUrl.path == "" -> URI.create(baseUrl.toString() + "/")
                     else -> baseUrl
                 }
-                Jsoup.parse(body).select("a").map { it.attr("href") }
+                Jsoup.parse(page.body).select("a").map { it.attr("href") }
                         .map { it.substringBeforeLast("#") }.toSet()
                         .map { baseUrl.resolve(URI.create(it.replace(" ", "%20"))).toString() }
         }
@@ -88,7 +88,7 @@ class CrawlerBuilder {
     private var pageLoader: (String) -> String = DEFAULT_PAGELOADER
     private var linkFilter: (String) -> Boolean = { _ -> true }
     private var errorHandler: (String) -> Unit = { _ -> }
-    private var linkParser: (String, String) -> List<String> = DEFAULT_LINK_PARSER
+    private var linkParser: (Page) -> List<String> = DEFAULT_LINK_PARSER
 
     fun onPage(handler: (Page) -> Unit): CrawlerBuilder {
         onPage = handler
@@ -115,7 +115,7 @@ class CrawlerBuilder {
         return this
     }
 
-    fun linkParser(handler: (String, String) -> List<String>): CrawlerBuilder {
+    fun linkParser(handler: (Page) -> List<String>): CrawlerBuilder {
         linkParser = handler
         return this
     }
