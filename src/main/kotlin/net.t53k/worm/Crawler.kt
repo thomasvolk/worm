@@ -28,7 +28,7 @@ import org.jsoup.Jsoup
 import java.net.URI
 import java.net.URL
 
-class Crawler(val onPage: (Page) -> Unit,
+class Crawler(val onNode: (Node) -> Unit,
               val worker: Int,
               val pageLoader: (String) -> String,
               val linkFilter: (String) -> Boolean,
@@ -45,7 +45,7 @@ class Crawler(val onPage: (Page) -> Unit,
                 }
             }
         }.build()
-        val dispatcher = system.actor("worm/dispatcher", WorkDispatcher(onPage = onPage, worker = worker, pageLoader = pageLoader,
+        val dispatcher = system.actor("worm/dispatcher", WorkDispatcher(onNode = onNode, worker = worker, pageLoader = pageLoader,
                 linkFilter = linkFilter, errorHandler = errorHandler, linkParser = linkParser))
         dispatcher send Start(urls)
         timeout.start { dispatcher send PoisonPill }
@@ -83,15 +83,15 @@ class CrawlerBuilder {
                         .map { baseUrl.resolve(URI.create(it.replace(" ", "%20"))).toString() }
         }
     }
-    private var onPage: (Page) -> Unit = { _ -> }
+    private var onNode: (Node) -> Unit = { _ -> }
     private var worker: Int = 4
     private var pageLoader: (String) -> String = DEFAULT_PAGELOADER
     private var linkFilter: (String) -> Boolean = { _ -> true }
     private var errorHandler: (String) -> Unit = { _ -> }
     private var linkParser: (Page) -> List<String> = DEFAULT_LINK_PARSER
 
-    fun onPage(handler: (Page) -> Unit): CrawlerBuilder {
-        onPage = handler
+    fun onNode(handler: (Node) -> Unit): CrawlerBuilder {
+        onNode = handler
         return this
     }
 
@@ -120,6 +120,6 @@ class CrawlerBuilder {
         return this
     }
 
-    fun build() = Crawler(onPage = onPage, worker = worker, pageLoader = pageLoader,
+    fun build() = Crawler(onNode = onNode, worker = worker, pageLoader = pageLoader,
             linkFilter = linkFilter, errorHandler = errorHandler, linkParser = linkParser)
 }

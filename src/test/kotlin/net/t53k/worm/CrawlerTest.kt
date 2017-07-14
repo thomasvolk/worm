@@ -56,7 +56,7 @@ class CrawlerTest {
         val errorUrls = mutableListOf<String>()
 
         val crawler = CrawlerBuilder().worker(worker)
-                .onPage { page -> pages += page }
+                .onNode { node -> pages += node.page }
                 .onError { url -> errorUrls += url  }
                 .pageLoader(pageLoader)
                 .withLinkFilter(linkFilter)
@@ -79,9 +79,9 @@ class CrawlerTest {
             val pacemaker = Pacemaker(listOf("index.html", "subpage.01.a.html"))
 
             val crawler = CrawlerBuilder().worker(worker)
-                    .onPage { page ->
-                        pages += page
-                        pacemaker.pace(page.url)
+                    .onNode { node ->
+                        pages += node.page
+                        pacemaker.pace(node.page.url)
                     }
                     .onError { url -> errorUrls += url }
                     .pageLoader { url -> pageLoader(url) }

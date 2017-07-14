@@ -39,7 +39,7 @@ timeout: $timeout
     val pages = mutableSetOf<Page>()
     val crawler = CrawlerBuilder()
             .worker(4)
-            .onPage { page -> pages += page }
+            .onNode { node -> pages += node.page }
             .withLinkFilter { it.startsWith(base) }
             .build()
     val pendigPages = crawler.start(listOf(seed), MilliSecondsTimeout(timeout))

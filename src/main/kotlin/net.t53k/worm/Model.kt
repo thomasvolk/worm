@@ -30,3 +30,8 @@ data class Page(val url: String, val body: String) {
   }
 }
 
+data class Node(val page: Page, val links: List<String>) {
+  override fun toString(): String {
+    return "Node(page='$page', linkCount=${links.size})"
+  }
+}

@@ -25,19 +25,20 @@ import net.t53k.alkali.Actor
 import net.t53k.alkali.ActorReference
 import net.t53k.alkali.PoisonPill
 import net.t53k.alkali.router.RoundRobinRouter
+import net.t53k.worm.Node
 import net.t53k.worm.Page
 import org.slf4j.LoggerFactory
 
 data class LoadPage(val url: String)
-data class ProcessPage(val page: Page, val links: List<String>)
+data class ProcessNode(val node: Node)
 data class Start(val urls: List<String>)
 data class LoadPageError(val url: String)
 data class Done(val pagesPending: List<String> = listOf())
 
-class PageHandler(val onPage: (Page) -> Unit) : Actor() {
+class NodeHandler(val onNode: (Node) -> Unit) : Actor() {
     override fun receive(message: Any) {
         when (message) {
-            is Page -> onPage(message)
+            is Node -> onNode(message)
         }
     }
 }
@@ -50,7 +51,7 @@ class PagerLoader(val pageLoader: (String) -> String, val linkParser: (Page) -> 
                 try {
                     log.debug("load page: ${message.url}")
                     val page = Page(message.url, pageLoader(message.url))
-                    sender() send ProcessPage(page, linkParser(page))
+                    sender() send ProcessNode(Node(page, linkParser(page)))
                 } catch (e: Exception) {
                     if(log.isDebugEnabled) log.error("loading page '${message.url}': $e", e)
                     else log.error("loading page '${message.url}': $e")
@@ -61,20 +62,20 @@ class PagerLoader(val pageLoader: (String) -> String, val linkParser: (Page) -> 
     }
 }
 
-class WorkDispatcher(val onPage: (Page) -> Unit,
+class WorkDispatcher(val onNode: (Node) -> Unit,
                      val worker: Int,
                      val pageLoader: (String) -> String,
                      val linkFilter: (String) -> Boolean,
                      val errorHandler: (String) -> Unit,
                      val linkParser: (Page) -> List<String>): Actor() {
     private lateinit var pageLoaderWorker: List<ActorReference>
-    private lateinit var pageHandler: ActorReference
+    private lateinit var nodeHandler: ActorReference
     private lateinit var router: ActorReference
     private lateinit var starter: ActorReference
     private val pagesPending = mutableSetOf<String>()
 
     override fun before() {
-        pageHandler = actor("worm/pageHandler", PageHandler(onPage))
+        nodeHandler = actor("worm/nodeHandler", NodeHandler(onNode))
         pageLoaderWorker = (1..worker).map { actor("worm/worker$it", PagerLoader(pageLoader, linkParser)) }
         router = actor("worm/workerRouter", RoundRobinRouter(pageLoaderWorker))
     }
@@ -86,14 +87,13 @@ class WorkDispatcher(val onPage: (Page) -> Unit,
                 pagesPending += message.urls
                 message.urls.forEach { router send LoadPage(it) }
             }
-            is ProcessPage -> {
-                pagesPending -= message.page.url
-                val page = message.page
-                message.links.filter(linkFilter).filter { !pagesPending.contains(it) }.forEach{
+            is ProcessNode -> {
+                pagesPending -= message.node.page.url
+                message.node.links.filter(linkFilter).filter { !pagesPending.contains(it) }.forEach{
                     pagesPending += it
                     router send LoadPage(it)
                 }
-                pageHandler send page
+                nodeHandler send message.node
             }
             is LoadPageError -> {
                 pagesPending -= message.url
