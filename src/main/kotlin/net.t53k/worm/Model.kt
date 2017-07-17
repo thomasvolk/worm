@@ -24,9 +24,9 @@ package net.t53k.worm
 import org.jsoup.Jsoup
 import java.net.URI
 
-data class Page(val url: String, val body: String) {
+data class Page(val url: String, val body: ByteArray) {
   override fun toString(): String {
-    return "Page(url='$url', bodySize=${body.length})"
+    return "Page(url='$url', bodySize=${body.size})"
   }
 }
 

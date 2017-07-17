@@ -27,10 +27,11 @@ import net.t53k.worm.actors.*
 import org.jsoup.Jsoup
 import java.net.URI
 import java.net.URL
+import java.nio.charset.Charset
 
 class Crawler(val onNode: (Node) -> Unit,
               val worker: Int,
-              val pageLoader: (String) -> String,
+              val pageLoader: (String) -> ByteArray,
               val linkFilter: (String) -> Boolean,
               val errorHandler: (String) -> Unit,
               val linkParser: (Page) -> List<String>) {
@@ -71,21 +72,21 @@ class MilliSecondsTimeout(val durationMs: Long) : Timeout {
 
 class CrawlerBuilder {
     companion object {
-        val DEFAULT_PAGELOADER: (String) -> String = { url -> URL(url).readText(Charsets.UTF_8) }
+        val DEFAULT_PAGELOADER: (String) -> ByteArray = { url -> URL(url).readBytes() }
         val DEFAULT_LINK_PARSER: (Page) -> List<String> = { page ->
                 var baseUrl = URI.create(page.url)
                 baseUrl = when {
                     baseUrl.path == "" -> URI.create(baseUrl.toString() + "/")
                     else -> baseUrl
                 }
-                Jsoup.parse(page.body).select("a").map { it.attr("href") }
+                Jsoup.parse(page.body.toString(Charset.forName("UTF-8"))).select("a").map { it.attr("href") }
                         .map { it.substringBeforeLast("#") }.toSet()
                         .map { baseUrl.resolve(URI.create(it.replace(" ", "%20"))).toString() }
         }
     }
     private var onNode: (Node) -> Unit = { _ -> }
     private var worker: Int = 4
-    private var pageLoader: (String) -> String = DEFAULT_PAGELOADER
+    private var pageLoader: (String) -> ByteArray = DEFAULT_PAGELOADER
     private var linkFilter: (String) -> Boolean = { _ -> true }
     private var errorHandler: (String) -> Unit = { _ -> }
     private var linkParser: (Page) -> List<String> = DEFAULT_LINK_PARSER
@@ -100,7 +101,7 @@ class CrawlerBuilder {
         return this
     }
 
-    fun pageLoader(handler: (String) -> String): CrawlerBuilder {
+    fun pageLoader(handler: (String) -> ByteArray): CrawlerBuilder {
         pageLoader = handler
         return this
     }

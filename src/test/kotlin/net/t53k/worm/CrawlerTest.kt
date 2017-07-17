@@ -46,7 +46,7 @@ class Pacemaker(urls: List<String>) : Timeout {
 class CrawlerTest {
     val base = "pages/tree"
     val testClass = javaClass
-    val pageLoader: (String) -> String = { url -> testClass.getResourceAsStream("$base/$url").bufferedReader().use { it.readText() } }
+    val pageLoader: (String) -> ByteArray = { url -> testClass.getResourceAsStream("$base/$url").use { it.readBytes() } }
     val linkFilter: (String) -> Boolean = { l -> !l.contains("filterthis") }
 
     @Test

@@ -43,7 +43,7 @@ class NodeHandler(val onNode: (Node) -> Unit) : Actor() {
     }
 }
 
-class PagerLoader(val pageLoader: (String) -> String, val linkParser: (Page) -> List<String>): Actor() {
+class PagerLoader(val pageLoader: (String) -> ByteArray, val linkParser: (Page) -> List<String>): Actor() {
     private val log = LoggerFactory.getLogger(javaClass)
     override fun receive(message: Any) {
         when(message) {
@@ -64,7 +64,7 @@ class PagerLoader(val pageLoader: (String) -> String, val linkParser: (Page) -> 
 
 class WorkDispatcher(val onNode: (Node) -> Unit,
                      val worker: Int,
-                     val pageLoader: (String) -> String,
+                     val pageLoader: (String) -> ByteArray,
                      val linkFilter: (String) -> Boolean,
                      val errorHandler: (String) -> Unit,
                      val linkParser: (Page) -> List<String>): Actor() {
