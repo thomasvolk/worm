@@ -1,6 +1,6 @@
 import net.t53k.worm.CrawlerBuilder
 import net.t53k.worm.MilliSecondsTimeout
-import net.t53k.worm.Page
+import net.t53k.worm.Resource
 import java.net.URI
 
 /*
@@ -36,14 +36,27 @@ seed: $seed
 timeout: $timeout
 """)
 
-    val pages = mutableSetOf<Page>()
+    val resources = mutableSetOf<Resource>()
     val crawler = CrawlerBuilder()
             .worker(4)
-            .onNode { node -> pages += node.page }
+            .onNode { node -> resources += node.resource }
             .withLinkFilter { it.startsWith(base) }
             .build()
-    val pendigPages = crawler.start(listOf(seed), MilliSecondsTimeout(timeout))
-    println(pages)
+    val pendigResources = crawler.start(listOf(seed), MilliSecondsTimeout(timeout))
+    println("""
+    Pages:
+
+      pending:
+      --------
+
+      $pendigResources
+
+
+      read:
+      -----
+
+      $resources
+""")
     println("=== PageTestApp::done ===")
 
 }

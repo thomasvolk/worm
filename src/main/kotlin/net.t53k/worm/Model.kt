@@ -21,17 +21,14 @@
  */
 package net.t53k.worm
 
-import org.jsoup.Jsoup
-import java.net.URI
-
-data class Page(val url: String, val body: ByteArray) {
+data class Resource(val url: String, val body: ByteArray) {
   override fun toString(): String {
     return "Page(url='$url', bodySize=${body.size})"
   }
 }
 
-data class Node(val page: Page, val links: List<String>) {
+data class Node(val resource: Resource, val links: List<String>) {
   override fun toString(): String {
-    return "Node(page='$page', linkCount=${links.size})"
+    return "Node(resource='$resource', linkCount=${links.size})"
   }
 }

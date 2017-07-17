@@ -31,22 +31,22 @@ import java.nio.charset.Charset
 
 class Crawler(val onNode: (Node) -> Unit,
               val worker: Int,
-              val pageLoader: (String) -> ByteArray,
+              val resourceLoader: (String) -> ByteArray,
               val linkFilter: (String) -> Boolean,
               val errorHandler: (String) -> Unit,
-              val linkParser: (Page) -> List<String>) {
+              val linkParser: (Resource) -> List<String>) {
 
     fun start(urls: List<String>, timeout: Timeout = InfinityTimeout): List<String> {
         val pendingPages = mutableListOf<String>()
         val system = ActorSystemBuilder().onDefaultActorMessage { message ->
             when(message) {
                 is Done -> {
-                    pendingPages += message.pagesPending
+                    pendingPages += message.resourcesPending
                     shutdown()
                 }
             }
         }.build()
-        val dispatcher = system.actor("worm/dispatcher", WorkDispatcher(onNode = onNode, worker = worker, pageLoader = pageLoader,
+        val dispatcher = system.actor("worm/dispatcher", WorkDispatcher(onNode = onNode, worker = worker, resourceLoader = resourceLoader,
                 linkFilter = linkFilter, errorHandler = errorHandler, linkParser = linkParser))
         dispatcher send Start(urls)
         timeout.start { dispatcher send PoisonPill }
@@ -72,8 +72,8 @@ class MilliSecondsTimeout(val durationMs: Long) : Timeout {
 
 class CrawlerBuilder {
     companion object {
-        val DEFAULT_PAGELOADER: (String) -> ByteArray = { url -> URL(url).readBytes() }
-        val DEFAULT_LINK_PARSER: (Page) -> List<String> = { page ->
+        val DEFAULT_RESOURCE_LOADER: (String) -> ByteArray = { url -> URL(url).readBytes() }
+        val DEFAULT_LINK_PARSER: (Resource) -> List<String> = { page ->
                 var baseUrl = URI.create(page.url)
                 baseUrl = when {
                     baseUrl.path == "" -> URI.create(baseUrl.toString() + "/")
@@ -86,10 +86,10 @@ class CrawlerBuilder {
     }
     private var onNode: (Node) -> Unit = { _ -> }
     private var worker: Int = 4
-    private var pageLoader: (String) -> ByteArray = DEFAULT_PAGELOADER
+    private var resourceLoader: (String) -> ByteArray = DEFAULT_RESOURCE_LOADER
     private var linkFilter: (String) -> Boolean = { _ -> true }
     private var errorHandler: (String) -> Unit = { _ -> }
-    private var linkParser: (Page) -> List<String> = DEFAULT_LINK_PARSER
+    private var linkParser: (Resource) -> List<String> = DEFAULT_LINK_PARSER
 
     fun onNode(handler: (Node) -> Unit): CrawlerBuilder {
         onNode = handler
@@ -101,8 +101,8 @@ class CrawlerBuilder {
         return this
     }
 
-    fun pageLoader(handler: (String) -> ByteArray): CrawlerBuilder {
-        pageLoader = handler
+    fun resourceLoader(handler: (String) -> ByteArray): CrawlerBuilder {
+        resourceLoader = handler
         return this
     }
 
@@ -116,11 +116,11 @@ class CrawlerBuilder {
         return this
     }
 
-    fun linkParser(handler: (Page) -> List<String>): CrawlerBuilder {
+    fun linkParser(handler: (Resource) -> List<String>): CrawlerBuilder {
         linkParser = handler
         return this
     }
 
-    fun build() = Crawler(onNode = onNode, worker = worker, pageLoader = pageLoader,
+    fun build() = Crawler(onNode = onNode, worker = worker, resourceLoader = resourceLoader,
             linkFilter = linkFilter, errorHandler = errorHandler, linkParser = linkParser)
 }

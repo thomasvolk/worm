@@ -52,13 +52,13 @@ class CrawlerTest {
     @Test
     fun crawler() {
         val worker = 4
-        val pages = mutableSetOf<Page>()
+        val pages = mutableSetOf<Resource>()
         val errorUrls = mutableListOf<String>()
 
         val crawler = CrawlerBuilder().worker(worker)
-                .onNode { node -> pages += node.page }
+                .onNode { node -> pages += node.resource }
                 .onError { url -> errorUrls += url  }
-                .pageLoader(pageLoader)
+                .resourceLoader(pageLoader)
                 .withLinkFilter(linkFilter)
                 .build()
         val pendigPages = crawler.start(listOf("index.html"))
@@ -74,17 +74,17 @@ class CrawlerTest {
     fun crawlerTimeout() {
         (1..50).forEach { _ ->
             val worker = 4
-            val pages = mutableSetOf<Page>()
+            val pages = mutableSetOf<Resource>()
             val errorUrls = mutableListOf<String>()
             val pacemaker = Pacemaker(listOf("index.html", "subpage.01.a.html"))
 
             val crawler = CrawlerBuilder().worker(worker)
                     .onNode { node ->
-                        pages += node.page
-                        pacemaker.pace(node.page.url)
+                        pages += node.resource
+                        pacemaker.pace(node.resource.url)
                     }
                     .onError { url -> errorUrls += url }
-                    .pageLoader { url -> pageLoader(url) }
+                    .resourceLoader { url -> pageLoader(url) }
                     .withLinkFilter(linkFilter)
                     .build()
             val pendigPages = crawler.start(listOf("index.html"), pacemaker)

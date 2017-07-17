@@ -11,7 +11,7 @@ buildscript {
 	}
 }
 
-
+// run with gradle pageTest -Pseed=<my page>
 task pageTest(type:JavaExec) {
 	if(project.hasProperty('seed')){
 		args(seed, 2000)
