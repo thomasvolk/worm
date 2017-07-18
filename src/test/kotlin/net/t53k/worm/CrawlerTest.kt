@@ -51,23 +51,25 @@ class CrawlerTest {
 
     @Test
     fun crawler() {
-        val worker = 4
-        val pages = mutableSetOf<Resource>()
-        val errorUrls = mutableListOf<String>()
+        (1..50).forEach { _ ->
+            val worker = 4
+            val pages = mutableSetOf<String>()
+            val errorUrls = mutableSetOf<String>()
 
-        val crawler = CrawlerBuilder().worker(worker)
-                .onNode { node -> pages += node.resource }
-                .onError { url -> errorUrls += url  }
-                .resourceLoader(pageLoader)
-                .withLinkFilter(linkFilter)
-                .build()
-        val pendigPages = crawler.start(listOf("index.html"))
+            val crawler = CrawlerBuilder().worker(worker)
+                    .onNode { node -> pages += node.resource.url }
+                    .onError { url -> errorUrls += url }
+                    .resourceLoader(pageLoader)
+                    .withLinkFilter(linkFilter)
+                    .build()
+            val pendigPages = crawler.start(listOf("index.html"))
 
-        assertEquals(listOf<String>(), pendigPages)
-        assertEquals(
-                listOf("index.html", "subpage.01.a.html", "subpage.01.b.html", "subpage.02.a.html").sorted(),
-                pages.map { it.url }.sorted())
-        assertEquals(listOf("notfound.html"), errorUrls.sorted())
+            assertEquals(listOf<String>(), pendigPages)
+            assertEquals(
+                    listOf("index.html", "subpage.01.a.html", "subpage.01.b.html", "subpage.02.a.html").sorted(),
+                    pages.sorted())
+            assertEquals(listOf("notfound.html"), errorUrls.sorted())
+        }
     }
 
     @Test
