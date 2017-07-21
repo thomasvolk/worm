@@ -25,6 +25,7 @@ import net.t53k.alkali.Actor
 import net.t53k.alkali.ActorReference
 import net.t53k.alkali.PoisonPill
 import net.t53k.alkali.router.RoundRobinRouter
+import net.t53k.worm.Body
 import net.t53k.worm.Node
 import net.t53k.worm.Resource
 import org.slf4j.LoggerFactory
@@ -43,7 +44,7 @@ class NodeHandler(val onNode: (Node) -> Unit) : Actor() {
     }
 }
 
-class NodeLoader(val resourceLoader: (String) -> ByteArray, val linkParser: (Resource) -> List<String>): Actor() {
+class NodeLoader(val resourceLoader: (String) -> Body, val linkParser: (Resource) -> List<String>): Actor() {
     private val log = LoggerFactory.getLogger(javaClass)
     override fun receive(message: Any) {
         when(message) {
@@ -64,7 +65,7 @@ class NodeLoader(val resourceLoader: (String) -> ByteArray, val linkParser: (Res
 
 class WorkDispatcher(val onNode: (Node) -> Unit,
                      val worker: Int,
-                     val resourceLoader: (String) -> ByteArray,
+                     val resourceLoader: (String) -> Body,
                      val linkFilter: (String) -> Boolean,
                      val errorHandler: (String) -> Unit,
                      val linkParser: (Resource) -> List<String>): Actor() {

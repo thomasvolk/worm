@@ -21,11 +21,13 @@
  */
 package net.t53k.worm
 
-data class Resource(val url: String, val body: ByteArray) {
+data class Body(val content: ByteArray, val contentType: String) {
   override fun toString(): String {
-    return "Page(url='$url', bodySize=${body.size})"
+    return "Body(contentType=${contentType}, bytes=${content.size})"
   }
 }
+
+data class Resource(val url: String, val body: Body)
 
 data class Node(val resource: Resource, val links: List<String>) {
   override fun toString(): String {

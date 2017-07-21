@@ -31,7 +31,7 @@ import java.nio.charset.Charset
 
 class Crawler(val onNode: (Node) -> Unit,
               val worker: Int,
-              val resourceLoader: (String) -> ByteArray,
+              val resourceLoader: (String) -> Body,
               val linkFilter: (String) -> Boolean,
               val errorHandler: (String) -> Unit,
               val linkParser: (Resource) -> List<String>) {
@@ -72,21 +72,24 @@ class MilliSecondsTimeout(val durationMs: Long) : Timeout {
 
 class CrawlerBuilder {
     companion object {
-        val DEFAULT_RESOURCE_LOADER: (String) -> ByteArray = { url -> URL(url).readBytes() }
+        val DEFAULT_RESOURCE_LOADER: (String) -> Body = { url ->
+            val con = URL(url).openConnection()
+            Body(con.getInputStream().readBytes(), con.contentType)
+        }
         val DEFAULT_LINK_PARSER: (Resource) -> List<String> = { page ->
                 var baseUrl = URI.create(page.url)
                 baseUrl = when {
                     baseUrl.path == "" -> URI.create(baseUrl.toString() + "/")
                     else -> baseUrl
                 }
-                Jsoup.parse(page.body.toString(Charset.forName("UTF-8"))).select("a").map { it.attr("href") }
+                Jsoup.parse(page.body.content.toString(Charset.forName("UTF-8"))).select("a").map { it.attr("href") }
                         .map { it.substringBeforeLast("#") }.toSet()
                         .map { baseUrl.resolve(URI.create(it.replace(" ", "%20"))).toString() }
         }
     }
     private var onNode: (Node) -> Unit = { _ -> }
     private var worker: Int = 4
-    private var resourceLoader: (String) -> ByteArray = DEFAULT_RESOURCE_LOADER
+    private var resourceLoader: (String) -> Body = DEFAULT_RESOURCE_LOADER
     private var linkFilter: (String) -> Boolean = { _ -> true }
     private var errorHandler: (String) -> Unit = { _ -> }
     private var linkParser: (Resource) -> List<String> = DEFAULT_LINK_PARSER
@@ -101,7 +104,7 @@ class CrawlerBuilder {
         return this
     }
 
-    fun resourceLoader(handler: (String) -> ByteArray): CrawlerBuilder {
+    fun resourceLoader(handler: (String) -> Body): CrawlerBuilder {
         resourceLoader = handler
         return this
     }
