@@ -74,7 +74,12 @@ class CrawlerBuilder {
     companion object {
         val DEFAULT_RESOURCE_LOADER: (String) -> Body = { url ->
             val con = URL(url).openConnection()
-            Body(con.getInputStream().readBytes(), con.contentType)
+            val inputStream = con.getInputStream()
+            try {
+                Body(inputStream.readBytes(), con.contentType)
+            } finally {
+                inputStream.close()
+            }
         }
         val DEFAULT_LINK_PARSER: (Resource) -> List<String> = { page ->
                 var baseUrl = URI.create(page.url)
