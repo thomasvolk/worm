@@ -31,7 +31,7 @@ import java.nio.charset.Charset
 
 class Crawler(val onNode: (Node) -> Unit,
               val worker: Int = 1,
-              val resourceLoader: (String) -> Body = ResourceLoader.DEFAULT_RESOURCE_LOADER,
+              val resourceLoader: (String) -> Body = ResourceLoader.DEFAULT_URL_RESOURCE_LOADER,
               val linkFilter: (String) -> Boolean = { _ -> true },
               val errorHandler: (String) -> Unit = { _ -> },
               val resourceHandler: Map<String, (Resource) -> List<String>> = mutableMapOf(
@@ -84,11 +84,10 @@ object ResourceHandler {
                 .map { it.substringBeforeLast("#") }.toSet()
                 .map { baseUrl.resolve(URI.create(it.replace(" ", "%20"))).toString() }
     }
-
 }
 
 object ResourceLoader {
-    val DEFAULT_RESOURCE_LOADER: (String) -> Body = { url ->
+    val DEFAULT_URL_RESOURCE_LOADER: (String) -> Body = { url ->
         val con = URL(url).openConnection()
         val inputStream = con.getInputStream()
         try {
