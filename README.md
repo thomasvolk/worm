@@ -20,10 +20,11 @@ API
 ---
 
 ```kotlin
+var base = 'http://example.com'
 val resources = mutableSetOf<Resource>()
 val crawler = Crawler(worker = 4,
             onNode = { node -> resources += node.resource },
             linkFilter = { it.startsWith(base) })
-val pendigResources = crawler.start(listOf(seed), MilliSecondsTimeout(timeout))
+val pendigResources = crawler.start(listOf(base), MilliSecondsTimeout(timeout))
 println(resources)
 ```
