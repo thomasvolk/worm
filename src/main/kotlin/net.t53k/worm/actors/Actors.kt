@@ -44,7 +44,7 @@ class NodeHandler(val onNode: (Node) -> Unit) : Actor() {
     }
 }
 
-class NodeLoader(val resourceLoader: (String) -> Body, val linkParser: (Resource) -> List<String>): Actor() {
+class NodeLoader(val resourceLoader: (String) -> Body, val resourceHandler: Map<String, (Resource) -> List<String>>): Actor() {
     private val log = LoggerFactory.getLogger(javaClass)
     override fun receive(message: Any) {
         when(message) {
@@ -52,7 +52,8 @@ class NodeLoader(val resourceLoader: (String) -> Body, val linkParser: (Resource
                 try {
                     log.debug("load resource: ${message.url}")
                     val page = Resource(message.url, resourceLoader(message.url))
-                    sender() send ProcessNode(Node(page, linkParser(page)))
+                    val handler = resourceHandler.getOrDefault(page.body.contentType, { listOf() })
+                    sender() send ProcessNode(Node(page, handler(page)))
                 } catch (e: Exception) {
                     if(log.isDebugEnabled) log.error("loading resource '${message.url}': $e", e)
                     else log.error("loading resource '${message.url}': $e")
@@ -68,7 +69,7 @@ class WorkDispatcher(val onNode: (Node) -> Unit,
                      val resourceLoader: (String) -> Body,
                      val linkFilter: (String) -> Boolean,
                      val errorHandler: (String) -> Unit,
-                     val linkParser: (Resource) -> List<String>): Actor() {
+                     val resourceHanler: Map<String, (Resource) -> List<String>>): Actor() {
     private lateinit var nodeLoaderWorker: List<ActorReference>
     private lateinit var nodeHandler: ActorReference
     private lateinit var router: ActorReference
@@ -77,7 +78,7 @@ class WorkDispatcher(val onNode: (Node) -> Unit,
 
     override fun before() {
         nodeHandler = actor("worm/nodeHandler", NodeHandler(onNode))
-        nodeLoaderWorker = (1..worker).map { actor("worm/worker$it", NodeLoader(resourceLoader, linkParser)) }
+        nodeLoaderWorker = (1..worker).map { actor("worm/worker$it", NodeLoader(resourceLoader, resourceHanler)) }
         router = actor("worm/workerRouter", RoundRobinRouter(nodeLoaderWorker))
     }
 

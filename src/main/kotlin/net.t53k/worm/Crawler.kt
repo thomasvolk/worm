@@ -34,7 +34,7 @@ class Crawler(val onNode: (Node) -> Unit,
               val resourceLoader: (String) -> Body,
               val linkFilter: (String) -> Boolean,
               val errorHandler: (String) -> Unit,
-              val linkParser: (Resource) -> List<String>) {
+              val resourceHandler: Map<String, (Resource) -> List<String>>) {
 
     fun start(urls: List<String>, timeout: Timeout = InfinityTimeout): List<String> {
         val pendingPages = mutableListOf<String>()
@@ -47,7 +47,7 @@ class Crawler(val onNode: (Node) -> Unit,
             }
         }.build()
         val dispatcher = system.actor("worm/dispatcher", WorkDispatcher(onNode = onNode, worker = worker, resourceLoader = resourceLoader,
-                linkFilter = linkFilter, errorHandler = errorHandler, linkParser = linkParser))
+                linkFilter = linkFilter, errorHandler = errorHandler, resourceHanler = resourceHandler))
         dispatcher send Start(urls)
         timeout.start { dispatcher send PoisonPill }
         system.waitForShutdown()
@@ -70,26 +70,30 @@ class MilliSecondsTimeout(val durationMs: Long) : Timeout {
     }
 }
 
+object ResourceHandler {
+    val DEFAULT_HTML_PAGE_HANDLER: (Resource) -> List<String> = { page ->
+        var baseUrl = URI.create(page.url)
+        baseUrl = when {
+            baseUrl.path == "" -> URI.create(baseUrl.toString() + "/")
+            else -> baseUrl
+        }
+        Jsoup.parse(page.body.content.toString(Charset.forName("UTF-8"))).select("a").map { it.attr("href") }
+                .map { it.substringBeforeLast("#") }.toSet()
+                .map { baseUrl.resolve(URI.create(it.replace(" ", "%20"))).toString() }
+    }
+
+}
+
 class CrawlerBuilder {
     companion object {
         val DEFAULT_RESOURCE_LOADER: (String) -> Body = { url ->
             val con = URL(url).openConnection()
             val inputStream = con.getInputStream()
             try {
-                Body(inputStream.readBytes(), con.contentType)
+                Body(inputStream.readBytes(), con.contentType ?: "application/octet-stream")
             } finally {
                 inputStream.close()
             }
-        }
-        val DEFAULT_LINK_PARSER: (Resource) -> List<String> = { page ->
-                var baseUrl = URI.create(page.url)
-                baseUrl = when {
-                    baseUrl.path == "" -> URI.create(baseUrl.toString() + "/")
-                    else -> baseUrl
-                }
-                Jsoup.parse(page.body.content.toString(Charset.forName("UTF-8"))).select("a").map { it.attr("href") }
-                        .map { it.substringBeforeLast("#") }.toSet()
-                        .map { baseUrl.resolve(URI.create(it.replace(" ", "%20"))).toString() }
         }
     }
     private var onNode: (Node) -> Unit = { _ -> }
@@ -97,7 +101,10 @@ class CrawlerBuilder {
     private var resourceLoader: (String) -> Body = DEFAULT_RESOURCE_LOADER
     private var linkFilter: (String) -> Boolean = { _ -> true }
     private var errorHandler: (String) -> Unit = { _ -> }
-    private var linkParser: (Resource) -> List<String> = DEFAULT_LINK_PARSER
+    private var resourceHandler: Map<String, (Resource) -> List<String>> = mutableMapOf(
+            "text/html" to ResourceHandler.DEFAULT_HTML_PAGE_HANDLER,
+            "application/xhtml+xml" to ResourceHandler.DEFAULT_HTML_PAGE_HANDLER
+    )
 
     fun onNode(handler: (Node) -> Unit): CrawlerBuilder {
         onNode = handler
@@ -124,11 +131,11 @@ class CrawlerBuilder {
         return this
     }
 
-    fun linkParser(handler: (Resource) -> List<String>): CrawlerBuilder {
-        linkParser = handler
+    fun onResource(mimeType: String, handler: (Resource) -> List<String>): CrawlerBuilder {
+        resourceHandler += mimeType to handler
         return this
     }
 
     fun build() = Crawler(onNode = onNode, worker = worker, resourceLoader = resourceLoader,
-            linkFilter = linkFilter, errorHandler = errorHandler, linkParser = linkParser)
+            linkFilter = linkFilter, errorHandler = errorHandler, resourceHandler = resourceHandler)
 }
