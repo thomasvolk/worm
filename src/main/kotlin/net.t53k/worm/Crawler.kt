@@ -29,8 +29,8 @@ import java.net.URI
 import java.net.URL
 import java.nio.charset.Charset
 
-class Crawler(val onNode: (Node) -> Unit = { _ -> },
-              val worker: Int,
+class Crawler(val onNode: (Node) -> Unit,
+              val worker: Int = 1,
               val resourceLoader: (String) -> Body = ResourceLoader.DEFAULT_RESOURCE_LOADER,
               val linkFilter: (String) -> Boolean = { _ -> true },
               val errorHandler: (String) -> Unit = { _ -> },
