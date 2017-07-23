@@ -56,12 +56,11 @@ class CrawlerTest {
             val pages = mutableSetOf<String>()
             val errorUrls = mutableSetOf<String>()
 
-            val crawler = CrawlerBuilder().worker(worker)
-                    .onNode { node -> pages += node.resource.url }
-                    .onError { url -> errorUrls += url }
-                    .resourceLoader(pageLoader)
-                    .withLinkFilter(linkFilter)
-                    .build()
+            val crawler = Crawler(worker = worker,
+                    onNode = { node -> pages += node.resource.url },
+                    errorHandler = { url -> errorUrls += url },
+                    resourceLoader = pageLoader,
+                    linkFilter =linkFilter)
             val pendigPages = crawler.start(listOf("index.html"))
 
             assertEquals(listOf<String>(), pendigPages)
@@ -80,15 +79,15 @@ class CrawlerTest {
             val errorUrls = mutableListOf<String>()
             val pacemaker = Pacemaker(listOf("index.html", "subpage.01.a.html"))
 
-            val crawler = CrawlerBuilder().worker(worker)
-                    .onNode { node ->
+            val crawler = Crawler(worker = worker,
+                    onNode = { node ->
                         pages += node.resource
                         pacemaker.pace(node.resource.url)
-                    }
-                    .onError { url -> errorUrls += url }
-                    .resourceLoader { url -> pageLoader(url) }
-                    .withLinkFilter(linkFilter)
-                    .build()
+                    },
+                    errorHandler = { url -> errorUrls += url },
+                    resourceLoader = pageLoader,
+                    linkFilter =linkFilter)
+
             val pendigPages = crawler.start(listOf("index.html"), pacemaker)
             val pagesProcessed = pages.map { it.url }
             val pagesTotal = (pendigPages + pagesProcessed).filter { url -> url != "notfound.html"}.toSet()

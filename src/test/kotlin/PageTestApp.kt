@@ -1,4 +1,4 @@
-import net.t53k.worm.CrawlerBuilder
+import net.t53k.worm.Crawler
 import net.t53k.worm.MilliSecondsTimeout
 import net.t53k.worm.Resource
 import java.net.URI
@@ -37,11 +37,9 @@ timeout: $timeout
 """)
 
     val resources = mutableSetOf<Resource>()
-    val crawler = CrawlerBuilder()
-            .worker(4)
-            .onNode { node -> resources += node.resource }
-            .withLinkFilter { it.startsWith(base) }
-            .build()
+    val crawler = Crawler(worker = 4,
+            onNode = { node -> resources += node.resource },
+            linkFilter = { it.startsWith(base) })
     val pendigResources = crawler.start(listOf(seed), MilliSecondsTimeout(timeout))
     println("""
     Pages:

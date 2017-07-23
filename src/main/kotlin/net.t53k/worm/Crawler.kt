@@ -29,12 +29,15 @@ import java.net.URI
 import java.net.URL
 import java.nio.charset.Charset
 
-class Crawler(val onNode: (Node) -> Unit,
+class Crawler(val onNode: (Node) -> Unit = { _ -> },
               val worker: Int,
-              val resourceLoader: (String) -> Body,
-              val linkFilter: (String) -> Boolean,
-              val errorHandler: (String) -> Unit,
-              val resourceHandler: Map<String, (Resource) -> List<String>>) {
+              val resourceLoader: (String) -> Body = ResourceLoader.DEFAULT_RESOURCE_LOADER,
+              val linkFilter: (String) -> Boolean = { _ -> true },
+              val errorHandler: (String) -> Unit = { _ -> },
+              val resourceHandler: Map<String, (Resource) -> List<String>> = mutableMapOf(
+                      "text/html" to ResourceHandler.DEFAULT_HTML_PAGE_HANDLER,
+                      "application/xhtml+xml" to ResourceHandler.DEFAULT_HTML_PAGE_HANDLER
+              )) {
 
     fun start(urls: List<String>, timeout: Timeout = InfinityTimeout): List<String> {
         val pendingPages = mutableListOf<String>()
@@ -84,58 +87,14 @@ object ResourceHandler {
 
 }
 
-class CrawlerBuilder {
-    companion object {
-        val DEFAULT_RESOURCE_LOADER: (String) -> Body = { url ->
-            val con = URL(url).openConnection()
-            val inputStream = con.getInputStream()
-            try {
-                Body(inputStream.readBytes(), con.contentType ?: "application/octet-stream")
-            } finally {
-                inputStream.close()
-            }
+object ResourceLoader {
+    val DEFAULT_RESOURCE_LOADER: (String) -> Body = { url ->
+        val con = URL(url).openConnection()
+        val inputStream = con.getInputStream()
+        try {
+            Body(inputStream.readBytes(), con.contentType ?: "application/octet-stream")
+        } finally {
+            inputStream.close()
         }
     }
-    private var onNode: (Node) -> Unit = { _ -> }
-    private var worker: Int = 4
-    private var resourceLoader: (String) -> Body = DEFAULT_RESOURCE_LOADER
-    private var linkFilter: (String) -> Boolean = { _ -> true }
-    private var errorHandler: (String) -> Unit = { _ -> }
-    private var resourceHandler: Map<String, (Resource) -> List<String>> = mutableMapOf(
-            "text/html" to ResourceHandler.DEFAULT_HTML_PAGE_HANDLER,
-            "application/xhtml+xml" to ResourceHandler.DEFAULT_HTML_PAGE_HANDLER
-    )
-
-    fun onNode(handler: (Node) -> Unit): CrawlerBuilder {
-        onNode = handler
-        return this
-    }
-
-    fun worker(count: Int): CrawlerBuilder {
-        worker = count
-        return this
-    }
-
-    fun resourceLoader(handler: (String) -> Body): CrawlerBuilder {
-        resourceLoader = handler
-        return this
-    }
-
-    fun withLinkFilter(handler: (String) -> Boolean): CrawlerBuilder {
-        linkFilter = handler
-        return this
-    }
-
-    fun onError(handler: (String) -> Unit): CrawlerBuilder {
-        errorHandler = handler
-        return this
-    }
-
-    fun onResource(mimeType: String, handler: (Resource) -> List<String>): CrawlerBuilder {
-        resourceHandler += mimeType to handler
-        return this
-    }
-
-    fun build() = Crawler(onNode = onNode, worker = worker, resourceLoader = resourceLoader,
-            linkFilter = linkFilter, errorHandler = errorHandler, resourceHandler = resourceHandler)
 }
