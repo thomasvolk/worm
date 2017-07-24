@@ -38,41 +38,30 @@ class CrawlerBuilder {
         return this
     }
 
-    fun onResource(contentType: String, handler: (Resource) -> List<String>): CrawlerBuilder {
-        resourceHandler[contentType] = handler
+    fun onResource(contentType: String, handler: Function<Resource, Collection<String>>): CrawlerBuilder {
+        resourceHandler[contentType] = { r: Resource -> handler.apply(r).toList() }
         return this
     }
 
-    fun loadResource(loader: (String) -> Body): CrawlerBuilder {
-        resourceLoader = loader
+    fun loadResource(loader: Function<String, Body>): CrawlerBuilder {
+        resourceLoader = { url: String -> loader.apply(url) }
         return this
     }
 
-    fun filterLinks(filter: (String) -> Boolean): CrawlerBuilder {
-        linkFilter = filter
+    fun filterLinks(filter: Function<String, Boolean>): CrawlerBuilder {
+        linkFilter = { url: String -> filter.apply(url) }
         return this
     }
 
-    fun onError(handler: (String) -> Unit): CrawlerBuilder {
-        errorHandler = handler
+    fun onError(handler: Consumer<String>): CrawlerBuilder {
+        errorHandler = { err: String -> handler.accept(err) }
         return this
     }
 
-    fun onDocument(handler: (Document) -> Unit): CrawlerBuilder {
-        documentHandler = handler
+    fun onDocument(handler: Consumer<Document>): CrawlerBuilder {
+        documentHandler = { doc: Document -> handler.accept(doc) }
         return this
     }
-
-    fun onResource(contentType: String, handler: Function<Resource, Collection<String>>) =
-            onResource(contentType) { r: Resource -> handler.apply(r).toList() }
-
-    fun loadResource(loader: Function<String, Body>) = loadResource { url: String -> loader.apply(url) }
-
-    fun filterLinks(filter: Function<String, Boolean>) = filterLinks { url: String -> filter.apply(url) }
-
-    fun onError(handler: Consumer<String>) = onError { err: String -> handler.accept(err) }
-
-    fun onDocument(handler: Consumer<Document>) = onDocument { doc: Document -> handler.accept(doc) }
 
     fun build(): Crawler = Crawler( documentHandler = documentHandler, errorHandler = errorHandler,
             resourceHandler = resourceHandler, resourceLoader = resourceLoader, worker = worker, linkFilter = linkFilter)
