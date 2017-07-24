@@ -29,15 +29,41 @@ import java.net.URI
 import java.net.URL
 import java.nio.charset.Charset
 
-class Crawler(val onNode: (Node) -> Unit,
-              val worker: Int = 1,
-              val resourceLoader: (String) -> Body = ResourceLoader.DEFAULT_URL_RESOURCE_LOADER,
-              val linkFilter: (String) -> Boolean = { _ -> true },
-              val errorHandler: (String) -> Unit = { _ -> },
-              val resourceHandler: Map<String, (Resource) -> List<String>> = mutableMapOf(
-                      "text/html" to ResourceHandler.DEFAULT_HTML_PAGE_HANDLER,
-                      "application/xhtml+xml" to ResourceHandler.DEFAULT_HTML_PAGE_HANDLER
-              )) {
+class Crawler(val documentHandler: (Document) -> Unit,
+              val worker: Int = Crawler.DEFAULT_WORKER_COUNT,
+              val resourceLoader: (String) -> Body = Crawler.DEFAULT_URL_RESOURCE_LOADER,
+              val linkFilter: (String) -> Boolean = Crawler.DEFAULT_LINK_FILTER,
+              val errorHandler: (String) -> Unit = Crawler.DEFAULT_ERROR_HANDLER,
+              val resourceHandler: Map<String, (Resource) -> List<String>> = Crawler.DEFAULT_RESOURCE_HANDLER_MAP) {
+
+    init {
+        require(worker > 0)
+    }
+
+    companion object {
+        val DEFAULT_ERROR_HANDLER: (String) -> Unit = { _ -> }
+        val DEFAULT_LINK_FILTER: (String) -> Boolean = { _ -> true }
+        val DEFAULT_WORKER_COUNT = 1
+        val DEFAULT_HTML_PAGE_HANDLER: (Resource) -> List<String> = { page ->
+            var baseUrl = URI.create(page.url)
+            baseUrl = when {
+                baseUrl.path == "" -> URI.create(baseUrl.toString() + "/")
+                else -> baseUrl
+            }
+            Jsoup.parse(page.body.content.toString(Charset.forName("UTF-8"))).select("a").map { it.attr("href") }
+                    .map { it.substringBeforeLast("#") }.toSet()
+                    .map { baseUrl.resolve(URI.create(it.replace(" ", "%20"))).toString() }
+        }
+        val DEFAULT_URL_RESOURCE_LOADER: (String) -> Body = { url ->
+            val con = URL(url).openConnection()
+            val inputStream = con.getInputStream()
+            inputStream.use { Body(it.readBytes(), con.contentType ?: "application/octet-stream") }
+        }
+        val DEFAULT_RESOURCE_HANDLER_MAP: Map<String, (Resource) -> List<String>> = mutableMapOf(
+                "text/html" to Crawler.DEFAULT_HTML_PAGE_HANDLER,
+                "application/xhtml+xml" to Crawler.DEFAULT_HTML_PAGE_HANDLER
+        )
+    }
 
     fun start(urls: List<String>, timeout: Timeout = InfinityTimeout): List<String> {
         val pendingPages = mutableListOf<String>()
@@ -49,51 +75,11 @@ class Crawler(val onNode: (Node) -> Unit,
                 }
             }
         }.build()
-        val dispatcher = system.actor("worm/dispatcher", WorkDispatcher(onNode = onNode, worker = worker, resourceLoader = resourceLoader,
+        val dispatcher = system.actor("worm/dispatcher", WorkDispatcher(documentHandler = documentHandler, worker = worker, resourceLoader = resourceLoader,
                 linkFilter = linkFilter, errorHandler = errorHandler, resourceHanler = resourceHandler))
         dispatcher send Start(urls)
         timeout.start { dispatcher send PoisonPill }
         system.waitForShutdown()
         return pendingPages.toList()
-    }
-}
-
-interface Timeout {
-    fun start(callback: () -> Unit): Unit
-}
-
-object InfinityTimeout : Timeout {
-    override fun start(callback: () -> Unit) { /* this will never run the callback */ }
-}
-
-class MilliSecondsTimeout(val durationMs: Long) : Timeout {
-    override fun start(callback: () -> Unit) {
-        Thread.sleep(durationMs)
-        callback()
-    }
-}
-
-object ResourceHandler {
-    val DEFAULT_HTML_PAGE_HANDLER: (Resource) -> List<String> = { page ->
-        var baseUrl = URI.create(page.url)
-        baseUrl = when {
-            baseUrl.path == "" -> URI.create(baseUrl.toString() + "/")
-            else -> baseUrl
-        }
-        Jsoup.parse(page.body.content.toString(Charset.forName("UTF-8"))).select("a").map { it.attr("href") }
-                .map { it.substringBeforeLast("#") }.toSet()
-                .map { baseUrl.resolve(URI.create(it.replace(" ", "%20"))).toString() }
-    }
-}
-
-object ResourceLoader {
-    val DEFAULT_URL_RESOURCE_LOADER: (String) -> Body = { url ->
-        val con = URL(url).openConnection()
-        val inputStream = con.getInputStream()
-        try {
-            Body(inputStream.readBytes(), con.contentType ?: "application/octet-stream")
-        } finally {
-            inputStream.close()
-        }
     }
 }

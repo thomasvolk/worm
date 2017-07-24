@@ -29,7 +29,7 @@ data class Body(val content: ByteArray, val contentType: String) {
 
 data class Resource(val url: String, val body: Body)
 
-data class Node(val resource: Resource, val links: List<String>) {
+data class Document(val resource: Resource, val links: List<String>) {
   override fun toString(): String {
     return "Node(resource='$resource', linkCount=${links.size})"
   }

@@ -26,45 +26,45 @@ import net.t53k.alkali.ActorReference
 import net.t53k.alkali.PoisonPill
 import net.t53k.alkali.router.RoundRobinRouter
 import net.t53k.worm.Body
-import net.t53k.worm.Node
+import net.t53k.worm.Document
 import net.t53k.worm.Resource
 import org.slf4j.LoggerFactory
 
-data class LoadPage(val url: String)
-data class ProcessNode(val node: Node)
+data class LoadResource(val url: String)
+data class ProcessDocument(val node: Document)
 data class Start(val urls: List<String>)
-data class LoadPageError(val url: String)
+data class LoadResourceError(val url: String)
 data class Done(val resourcesPending: List<String> = listOf())
 
-class NodeHandler(val onNode: (Node) -> Unit) : Actor() {
+class DocumentHandler(val documentHandler: (Document) -> Unit) : Actor() {
     override fun receive(message: Any) {
         when (message) {
-            is Node -> onNode(message)
+            is Document -> documentHandler(message)
         }
     }
 }
 
-class NodeLoader(val resourceLoader: (String) -> Body, val resourceHandler: Map<String, (Resource) -> List<String>>): Actor() {
+class ResourceLoader(val resourceLoader: (String) -> Body, val resourceHandler: Map<String, (Resource) -> List<String>>): Actor() {
     private val log = LoggerFactory.getLogger(javaClass)
     override fun receive(message: Any) {
         when(message) {
-            is LoadPage -> {
+            is LoadResource -> {
                 try {
                     log.debug("load resource: ${message.url}")
                     val page = Resource(message.url, resourceLoader(message.url))
-                    val handler = resourceHandler.getOrDefault(page.body.contentType, { listOf() })
-                    sender() send ProcessNode(Node(page, handler(page)))
+                    val handler = resourceHandler.getOrElse(page.body.contentType,{ { listOf() } })
+                    sender() send ProcessDocument(Document(page, handler(page)))
                 } catch (e: Exception) {
                     if(log.isDebugEnabled) log.error("loading resource '${message.url}': $e", e)
                     else log.error("loading resource '${message.url}': $e")
-                    sender() send LoadPageError(message.url)
+                    sender() send LoadResourceError(message.url)
                 }
             }
         }
     }
 }
 
-class WorkDispatcher(val onNode: (Node) -> Unit,
+class WorkDispatcher(val documentHandler: (Document) -> Unit,
                      val worker: Int,
                      val resourceLoader: (String) -> Body,
                      val linkFilter: (String) -> Boolean,
@@ -77,8 +77,8 @@ class WorkDispatcher(val onNode: (Node) -> Unit,
     private val resourcesPending = mutableSetOf<String>()
 
     override fun before() {
-        nodeHandler = actor("worm/nodeHandler", NodeHandler(onNode))
-        nodeLoaderWorker = (1..worker).map { actor("worm/worker$it", NodeLoader(resourceLoader, resourceHanler)) }
+        nodeHandler = actor("worm/nodeHandler", DocumentHandler(documentHandler))
+        nodeLoaderWorker = (1..worker).map { actor("worm/worker$it", ResourceLoader(resourceLoader, resourceHanler)) }
         router = actor("worm/workerRouter", RoundRobinRouter(nodeLoaderWorker))
     }
 
@@ -87,17 +87,17 @@ class WorkDispatcher(val onNode: (Node) -> Unit,
             is Start -> {
                 starter = sender()
                 resourcesPending += message.urls
-                message.urls.forEach { router send LoadPage(it) }
+                message.urls.forEach { router send LoadResource(it) }
             }
-            is ProcessNode -> {
+            is ProcessDocument -> {
                 resourcesPending -= message.node.resource.url
                 message.node.links.filter(linkFilter).filter { !resourcesPending.contains(it) }.forEach{
                     resourcesPending += it
-                    router send LoadPage(it)
+                    router send LoadResource(it)
                 }
                 nodeHandler send message.node
             }
-            is LoadPageError -> {
+            is LoadResourceError -> {
                 resourcesPending -= message.url
                 errorHandler(message.url)
             }

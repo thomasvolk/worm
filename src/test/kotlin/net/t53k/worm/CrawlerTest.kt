@@ -57,10 +57,10 @@ class CrawlerTest {
             val errorUrls = mutableSetOf<String>()
 
             val crawler = Crawler(worker = worker,
-                    onNode = { node -> pages += node.resource.url },
+                    documentHandler = { doc -> pages += doc.resource.url },
                     errorHandler = { url -> errorUrls += url },
                     resourceLoader = pageLoader,
-                    linkFilter =linkFilter)
+                    linkFilter = linkFilter)
             val pendigPages = crawler.start(listOf("index.html"))
 
             assertEquals(listOf<String>(), pendigPages)
@@ -80,9 +80,9 @@ class CrawlerTest {
             val pacemaker = Pacemaker(listOf("index.html", "subpage.01.a.html"))
 
             val crawler = Crawler(worker = worker,
-                    onNode = { node ->
-                        pages += node.resource
-                        pacemaker.pace(node.resource.url)
+                    documentHandler = { doc ->
+                        pages += doc.resource
+                        pacemaker.pace(doc.resource.url)
                     },
                     errorHandler = { url -> errorUrls += url },
                     resourceLoader = pageLoader,

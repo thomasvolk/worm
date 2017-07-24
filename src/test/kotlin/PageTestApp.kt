@@ -38,7 +38,7 @@ timeout: $timeout
 
     val resources = mutableSetOf<Resource>()
     val crawler = Crawler(worker = 4,
-            onNode = { node -> resources += node.resource },
+            documentHandler = { node -> resources += node.resource },
             linkFilter = { it.startsWith(base) })
     val pendigResources = crawler.start(listOf(seed), MilliSecondsTimeout(timeout))
     println("""

@@ -27,7 +27,8 @@ repositories {
 	}
 
 dependencies {
-	testCompile('junit:junit:4.12')
+	testCompile 'junit:junit:4.12'
+	testCompile 'commons-io:commons-io:2.5'
 	compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
 	compile "org.jsoup:jsoup:1.8.1"
 	compile 'com.github.thomasvolk:alkali:RELEASE_1_0_1-SNAPSHOT'
