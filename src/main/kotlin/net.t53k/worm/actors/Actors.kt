@@ -46,14 +46,18 @@ class DocumentHandler(val documentHandler: (Document) -> Unit) : Actor() {
 
 class ResourceLoader(val resourceLoader: (String) -> Body, val resourceHandler: Map<String, (Resource) -> List<String>>): Actor() {
     private val log = LoggerFactory.getLogger(javaClass)
+
+    private fun getResourceHandler(contentType: String) =
+            resourceHandler.getOrElse(contentType.substringBeforeLast(';'), { { listOf() } })
+
     override fun receive(message: Any) {
         when(message) {
             is LoadResource -> {
                 try {
                     log.debug("load resource: ${message.url}")
-                    val page = Resource(message.url, resourceLoader(message.url))
-                    val handler = resourceHandler.getOrElse(page.body.contentType,{ { listOf() } })
-                    sender() send ProcessDocument(Document(page, handler(page)))
+                    val res = Resource(message.url, resourceLoader(message.url))
+                    val handler = getResourceHandler(res.body.contentType)
+                    sender() send ProcessDocument(Document(res, handler(res)))
                 } catch (e: Exception) {
                     if(log.isDebugEnabled) log.error("loading resource '${message.url}': $e", e)
                     else log.error("loading resource '${message.url}': $e")
