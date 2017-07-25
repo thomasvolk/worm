@@ -48,7 +48,7 @@ class ResourceLoader(val resourceLoader: (String) -> Body, val resourceHandler: 
     private val log = LoggerFactory.getLogger(javaClass)
 
     private fun getResourceHandler(contentType: String) =
-            resourceHandler.getOrElse(contentType.substringBeforeLast(';'), { { listOf() } })
+            resourceHandler.getOrElse(contentType.substringBeforeLast(';').trim(), { { listOf() } })
 
     override fun receive(message: Any) {
         when(message) {
