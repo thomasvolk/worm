@@ -46,10 +46,16 @@ class ContentTypeTest {
         assertNull(ct.encoding)
     }
 
-
     @Test
     fun withCharset() {
-        val ct = ContentType.create("text/html; charset=ascii ")
+        val ct = ContentType.create("text/html; charset=ascii")
+        assertEquals("text/html", ct.mimeType)
+        assertEquals("ascii", ct.encoding)
+    }
+
+    @Test
+    fun withCharsetAndParameter() {
+        val ct = ContentType.create("text/html; charset=ascii xxx=5555")
         assertEquals("text/html", ct.mimeType)
         assertEquals("ascii", ct.encoding)
     }

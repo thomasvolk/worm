@@ -31,7 +31,7 @@ data class ContentType(val contentType: String) {
       }
   }
   val encoding: String? get() {
-    val m = "charset=(.+)".toRegex().find(contentType)
+    val m = "charset=(\\S+)".toRegex().find(contentType)
     return m?.groups?.get(1)?.value?.trim()
   }
   val mimeType: String get() = contentType.substringBeforeLast(';').trim()
