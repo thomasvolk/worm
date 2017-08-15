@@ -21,24 +21,29 @@
  */
 package net.t53k.worm
 
-data class ContentType(val contentType: String) {
-  val encoding: String? get() {
-    val m = "charset=(.+)".toRegex().find(contentType)
-    return m?.groups?.get(1)?.value?.trim()
-  }
-  val mimeType: String get() = contentType.substringBeforeLast(';').trim()
-}
+import org.junit.Test
+import org.junit.Assert.*
 
-data class Body(val content: ByteArray, val contentType: ContentType) {
-  override fun toString(): String {
-    return "Body(contentType=${contentType}, bytes=${content.size})"
-  }
-}
+class ContentTypeTest {
+    @Test
+    fun noEncoding() {
+        val ct = ContentType("text/html  ")
+        assertEquals("text/html", ct.mimeType)
+        assertNull(ct.encoding)
+    }
 
-data class Resource(val url: String, val body: Body)
+    @Test
+    fun empty() {
+        val ct = ContentType("   ")
+        assertEquals("", ct.mimeType)
+        assertNull(ct.encoding)
+    }
 
-data class Document(val resource: Resource, val links: List<String>) {
-  override fun toString(): String {
-    return "Node(resource='$resource', linkCount=${links.size})"
-  }
+
+    @Test
+    fun withCharset() {
+        val ct = ContentType("text/html; charset=ascii ")
+        assertEquals("text/html", ct.mimeType)
+        assertEquals("ascii", ct.encoding)
+    }
 }

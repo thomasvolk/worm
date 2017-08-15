@@ -15,7 +15,7 @@ public class CrawlerBuilderTest {
     private final Function<String, Body> RESOURCE_LOADER = (url) -> {
         try {
             try(InputStream is = getClass().getResourceAsStream(String.format("%s/%s", BASE, url))) {
-                return new Body(IOUtils.toByteArray(is), "text/html");
+                return new Body(IOUtils.toByteArray(is), new ContentType("text/html"));
             }
         } catch (IOException e) {
             throw new RuntimeException(e);

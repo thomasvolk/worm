@@ -26,6 +26,7 @@ import net.t53k.alkali.ActorReference
 import net.t53k.alkali.PoisonPill
 import net.t53k.alkali.router.RoundRobinRouter
 import net.t53k.worm.Body
+import net.t53k.worm.ContentType
 import net.t53k.worm.Document
 import net.t53k.worm.Resource
 import org.slf4j.LoggerFactory
@@ -47,8 +48,8 @@ class DocumentHandler(val documentHandler: (Document) -> Unit) : Actor() {
 class ResourceLoader(val resourceLoader: (String) -> Body, val resourceHandler: Map<String, (Resource) -> List<String>>): Actor() {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    private fun getResourceHandler(contentType: String) =
-            resourceHandler.getOrElse(contentType.substringBeforeLast(';').trim(), { { listOf() } })
+    private fun getResourceHandler(contentType: ContentType) =
+            resourceHandler.getOrElse(contentType.mimeType, { { listOf() } })
 
     override fun receive(message: Any) {
         when(message) {
