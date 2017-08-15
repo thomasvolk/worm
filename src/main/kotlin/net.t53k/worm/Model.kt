@@ -24,6 +24,12 @@ package net.t53k.worm
 import java.nio.charset.Charset
 
 data class ContentType(val contentType: String) {
+  companion object {
+      val DEFAULT_CONTENT_TYPE = "application/octet-stream"
+      fun create(contentType: String?): ContentType {
+        return ContentType(contentType ?: DEFAULT_CONTENT_TYPE)
+      }
+  }
   val encoding: String? get() {
     val m = "charset=(.+)".toRegex().find(contentType)
     return m?.groups?.get(1)?.value?.trim()
@@ -32,12 +38,14 @@ data class ContentType(val contentType: String) {
 }
 
 data class Body(val content: ByteArray, val contentType: ContentType) {
+  val DEFAULT_ENCODING = "utf-8"
+
   override fun toString(): String {
     return "Body(contentType=${contentType}, bytes=${content.size})"
   }
 
   fun  text(): String {
-    val charset = Charset.forName(contentType.encoding ?: "utf-8")
+    val charset = Charset.forName(contentType.encoding ?: DEFAULT_ENCODING)
     return content.toString(charset)
   }
 }

@@ -27,22 +27,29 @@ import org.junit.Assert.*
 class ContentTypeTest {
     @Test
     fun noEncoding() {
-        val ct = ContentType("text/html  ")
+        val ct = ContentType.create("text/html  ")
         assertEquals("text/html", ct.mimeType)
         assertNull(ct.encoding)
     }
 
     @Test
     fun empty() {
-        val ct = ContentType("   ")
+        val ct = ContentType.create("   ")
         assertEquals("", ct.mimeType)
+        assertNull(ct.encoding)
+    }
+
+    @Test
+    fun fromNull() {
+        val ct = ContentType.create(null)
+        assertEquals("application/octet-stream", ct.mimeType)
         assertNull(ct.encoding)
     }
 
 
     @Test
     fun withCharset() {
-        val ct = ContentType("text/html; charset=ascii ")
+        val ct = ContentType.create("text/html; charset=ascii ")
         assertEquals("text/html", ct.mimeType)
         assertEquals("ascii", ct.encoding)
     }

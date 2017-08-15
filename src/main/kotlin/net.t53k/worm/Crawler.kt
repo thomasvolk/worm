@@ -57,7 +57,7 @@ class Crawler(val documentHandler: (Document) -> Unit,
         val DEFAULT_URL_RESOURCE_LOADER: (String) -> Body = { url ->
             val con = URL(url).openConnection()
             val inputStream = con.getInputStream()
-            inputStream.use { Body(it.readBytes(), ContentType(con.contentType ?: "application/octet-stream")) }
+            inputStream.use { Body(it.readBytes(), ContentType.create(con.contentType)) }
         }
         val DEFAULT_RESOURCE_HANDLER_MAP: Map<String, (Resource) -> List<String>> = mutableMapOf(
                 "text/html" to Crawler.DEFAULT_HTML_PAGE_HANDLER,
