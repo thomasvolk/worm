@@ -21,6 +21,8 @@
  */
 package net.t53k.worm
 
+import java.nio.charset.Charset
+
 data class ContentType(val contentType: String) {
   val encoding: String? get() {
     val m = "charset=(.+)".toRegex().find(contentType)
@@ -32,6 +34,11 @@ data class ContentType(val contentType: String) {
 data class Body(val content: ByteArray, val contentType: ContentType) {
   override fun toString(): String {
     return "Body(contentType=${contentType}, bytes=${content.size})"
+  }
+
+  fun  text(): String {
+    val charset = Charset.forName(contentType.encoding ?: "utf-8")
+    return content.toString(charset)
   }
 }
 

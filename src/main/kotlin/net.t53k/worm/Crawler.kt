@@ -50,7 +50,7 @@ class Crawler(val documentHandler: (Document) -> Unit,
                 baseUrl.path == "" -> URI.create(baseUrl.toString() + "/")
                 else -> baseUrl
             }
-            Jsoup.parse(page.body.content.toString(Charset.forName("UTF-8"))).select("a").map { it.attr("href") }
+            Jsoup.parse(page.body.text()).select("a").map { it.attr("href") }
                     .map { it.substringBeforeLast("#") }.toSet()
                     .map { baseUrl.resolve(URI.create(it.replace(" ", "%20"))).toString() }
         }
