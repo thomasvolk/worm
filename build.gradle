@@ -13,9 +13,12 @@ plugins {
 	id 'com.github.kt3k.coveralls' version '2.7.1'
 }
 
+group = 'net.t53k'
+version = '1.0-SNAPSHOT'
+
 apply plugin: 'kotlin'
-apply plugin: 'maven'
 apply plugin: 'jacoco'
+apply plugin: 'maven'
 
 // run with gradle pageTest -Pseed=<my page>
 task pageTest(type:JavaExec) {
