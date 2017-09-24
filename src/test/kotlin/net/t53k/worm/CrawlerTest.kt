@@ -96,4 +96,9 @@ class CrawlerTest {
                     pagesTotal.sorted())
         }
     }
+
+    @Test
+    fun defaultValues() {
+        Crawler({})
+    }
 }

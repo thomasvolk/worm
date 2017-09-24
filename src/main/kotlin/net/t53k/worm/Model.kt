@@ -54,6 +54,6 @@ data class Resource(val url: String, val body: Body)
 
 data class Document(val resource: Resource, val links: List<String>) {
   override fun toString(): String {
-    return "Node(resource='$resource', linkCount=${links.size})"
+    return "Document(resource='$resource', linkCount=${links.size})"
   }
 }
