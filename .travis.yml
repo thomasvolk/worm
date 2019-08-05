@@ -6,4 +6,4 @@ jdk:
 os:
 - linux
 
-script: gradle build test jacocoTestReport coveralls
+script: ./gradlew build test jacocoTestReport coveralls
