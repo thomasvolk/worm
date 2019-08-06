@@ -1,9 +1,9 @@
 language: java
 
 jdk:
-  - openjdk12
+  - openjdk11
 
 os:
 - linux
 
-script: ./gradlew build test jacocoTestReport coveralls
+script: ./gradlew -Djdk.tls.client.protocols="TLSv1,TLSv1.1,TLSv1.2" test build jacocoTestReport coveralls
