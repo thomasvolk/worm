@@ -4,7 +4,6 @@ Worm
 Worm is a small and simple crawler library written in Kotlin.
 
 [![Build Status](https://travis-ci.org/thomasvolk/worm.svg?branch=master)](https://travis-ci.org/thomasvolk/worm)
-[![Coverage Status](https://coveralls.io/repos/github/thomasvolk/worm/badge.svg?branch=master)](https://coveralls.io/github/thomasvolk/worm?branch=master)
 
 Install
 -------
